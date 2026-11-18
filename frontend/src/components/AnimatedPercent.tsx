@@ -11,3 +11,16 @@ interface AnimatedPercentProps {
 export function AnimatedPercent({ value, delayMs = 0 }: AnimatedPercentProps) {
   return <>{percent(useCountUp(value, 900, delayMs))}</>
 }
+
+interface AnimatedPointsProps {
+  /** A difference of fractions (-1..1); shown as signed percentage points. */
+  readonly difference: number
+  readonly delayMs?: number
+}
+
+/** "+44" / "−49": a signed percentage-point change that counts up from 0. */
+export function AnimatedPoints({ difference, delayMs = 0 }: AnimatedPointsProps) {
+  const points = Math.round(Math.abs(difference) * 100)
+  const shown = Math.round(useCountUp(points, 900, delayMs))
+  return <>{difference < 0 ? '−' : '+'}{shown}</>
+}

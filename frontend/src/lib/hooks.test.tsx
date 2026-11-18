@@ -56,6 +56,20 @@ describe('useCountUp', () => {
   })
 })
 
+describe('useCountUp retargeting', () => {
+  it('applies the entrance delay once; a later change starts at once and finishes quickly', () => {
+    stubMatchMedia(false)
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance'] })
+    const { result, rerender } = renderHook(({ target }) => useCountUp(target, 900, 1000), { initialProps: { target: 0.6 } })
+    act(() => void vi.advanceTimersByTime(2200)) // past the 1 s entrance delay + 0.9 s animation
+    expect(result.current).toBeCloseTo(0.6, 5)
+
+    rerender({ target: 0 })
+    act(() => void vi.advanceTimersByTime(500)) // far less than the 1 s entrance delay
+    expect(result.current).toBeCloseTo(0, 5)
+  })
+})
+
 describe('useViewMode', () => {
   it('defaults to summary and remembers the choice', () => {
     const first = renderHook(() => useViewMode())

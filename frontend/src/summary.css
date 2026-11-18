@@ -78,25 +78,45 @@
 }
 
 .summary {
+  position: relative;
+  isolation: isolate;
   display: grid;
   gap: 16px;
 }
 
-.summary > * {
-  animation: rise 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+/* Ambient backdrop, Summary only (Detail stays plain): two soft glows tinted by
+   the standout behavior and a faint dot grid, faded out toward the edges. */
+.summary::before {
+  content: '';
+  position: absolute;
+  inset: -12px -12px -28px; /* top stops inside the 16px gap so it never paints over the card above */
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(560px 300px at 10% 6%, color-mix(in srgb, var(--beh) 15%, transparent), transparent 70%),
+    radial-gradient(520px 340px at 92% 38%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 70%),
+    radial-gradient(color-mix(in srgb, var(--text) 11%, transparent) 1px, transparent 1.5px) 0 0 / 22px 22px;
+  -webkit-mask-image: radial-gradient(ellipse 72% 62% at 50% 34%, #000 38%, transparent 100%);
+  mask-image: radial-gradient(ellipse 72% 62% at 50% 34%, #000 38%, transparent 100%);
+  animation: drift 26s ease-in-out infinite alternate;
 }
 
-.summary > :nth-child(2) {
-  animation-delay: 0.08s;
+@keyframes drift {
+  to {
+    transform: translate3d(0, 10px, 0) scale(1.02);
+  }
 }
-.summary > :nth-child(3) {
-  animation-delay: 0.16s;
+
+/* One entrance sequence: --s is the step (90 ms each); rows use --enter-delay in ms.
+   fill-mode "backwards" (not "both") so hover transforms still work afterwards. */
+.enter {
+  animation: rise 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  animation-delay: calc(var(--s, 0) * 90ms);
 }
-.summary > :nth-child(4) {
-  animation-delay: 0.24s;
-}
-.summary > :nth-child(5) {
-  animation-delay: 0.3s;
+
+.enter-at {
+  animation: rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  animation-delay: var(--enter-delay, 0ms);
 }
 
 @keyframes rise {
@@ -138,14 +158,34 @@
 
 /* ---------- hero (the headline finding) ---------- */
 .hero {
+  display: grid;
+  gap: 24px 40px;
+  padding: 30px 34px;
+  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in srgb, var(--beh) 30%, var(--border));
+  background:
+    radial-gradient(420px 220px at 96% 50%, color-mix(in srgb, var(--beh) 13%, transparent), transparent 70%),
+    linear-gradient(135deg, color-mix(in srgb, var(--beh) 13%, var(--surface)) 0%, var(--surface) 72%);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.35s ease, border-color 0.35s ease;
+  animation: rise 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+
+.hero--with-stat {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.hero:hover {
+  border-color: color-mix(in srgb, var(--beh) 48%, var(--border));
+  box-shadow: var(--shadow-card), 0 14px 48px color-mix(in srgb, var(--beh) 16%, transparent);
+}
+
+.hero__main {
   display: flex;
   align-items: flex-start;
   gap: 22px;
-  padding: 28px 30px;
-  border-radius: var(--radius-lg);
-  border: 1px solid color-mix(in srgb, var(--beh) 30%, var(--border));
-  background: linear-gradient(135deg, color-mix(in srgb, var(--beh) 14%, var(--surface)) 0%, var(--surface) 72%);
-  box-shadow: var(--shadow-card);
+  min-width: 0;
 }
 
 .hero__body {
@@ -163,10 +203,10 @@
 
 .hero__headline {
   margin: 6px 0 12px;
-  font-size: clamp(1.7rem, 4.2vw, 2.6rem);
+  font-size: clamp(1.5rem, 3.2vw, 2.15rem);
   font-weight: 750;
   letter-spacing: -0.025em;
-  line-height: 1.14;
+  line-height: 1.16;
   text-wrap: balance;
 }
 
@@ -176,15 +216,81 @@
 
 .hero__context {
   margin: 0;
-  max-width: 62ch;
+  max-width: 58ch;
   color: var(--text-muted);
-  font-size: 1.05rem;
+  font-size: 1.03rem;
 }
 
 .hero__extra {
   margin: 10px 0 0;
-  max-width: 62ch;
-  font-size: 0.98rem;
+  max-width: 58ch;
+  font-size: 0.97rem;
+}
+
+/* the one oversized figure: gradient text with a soft glow.
+   The gradient runs from the text color to a darkened mix of the behavior color,
+   so every behavior stays >= 5:1 against the surface in both themes. */
+.hero-stat {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  text-align: right;
+}
+
+.hero-stat p {
+  margin: 0;
+}
+
+.hero-stat__label {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.hero-stat__figure {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  line-height: 0.95;
+}
+
+.hero-stat__value {
+  font-size: clamp(4.2rem, 11vw, 7rem);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  background: linear-gradient(120deg, var(--text) 8%, color-mix(in srgb, var(--beh) 62%, var(--text)) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 22px color-mix(in srgb, var(--beh) 38%, transparent));
+}
+
+.hero-stat__unit {
+  color: var(--text-muted);
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.hero-stat__caption {
+  max-width: 24ch;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
+@supports not ((background-clip: text) or (-webkit-background-clip: text)) {
+  .hero-stat__value {
+    color: var(--text);
+  }
+}
+
+@media (forced-colors: active) {
+  .hero-stat__value {
+    background: none;
+    color: CanvasText;
+    filter: none;
+  }
 }
 
 /* ---------- stat tiles ---------- */
@@ -203,6 +309,13 @@
   border-radius: 14px;
   background: var(--surface);
   box-shadow: var(--shadow-card);
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.tile:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--beh) 40%, var(--border));
+  box-shadow: var(--shadow-card), 0 12px 28px color-mix(in srgb, var(--beh) 13%, transparent);
 }
 
 .tile__label {
@@ -236,6 +349,12 @@
   border-radius: var(--radius-lg);
   background: var(--surface);
   box-shadow: var(--shadow-card);
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s ease;
+}
+
+.chart-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card), 0 14px 36px color-mix(in srgb, var(--beh) 10%, transparent);
 }
 
 .chart-card__header {
@@ -299,8 +418,18 @@
 }
 
 .pair:hover,
+.pair.is-active,
 .pair:focus-visible {
   background: color-mix(in srgb, var(--beh) 7%, transparent);
+}
+
+/* while one behavior is highlighted (hover/focus, in the bars or the donut), the rest recede */
+.pair.is-dim {
+  opacity: 0.55;
+}
+
+.pair {
+  transition: background 0.2s ease, opacity 0.25s ease;
 }
 
 .pair:focus-visible {
@@ -347,9 +476,9 @@
   width: calc(var(--p) * 1%);
   height: 100%;
   border-radius: 0 4px 4px 0; /* square at the baseline, 4px rounded data end */
-  animation: grow 0.95s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: grow 0.95s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
   animation-delay: var(--d, 0ms);
-  transition: filter 0.2s ease;
+  transition: filter 0.2s ease, box-shadow 0.25s ease;
 }
 
 .bar-lane--control .bar-fill {
@@ -360,8 +489,10 @@
   background: var(--beh);
 }
 
-.bar-lane:hover .bar-fill {
-  filter: brightness(1.1) saturate(1.1);
+.bar-lane:hover .bar-fill,
+.pair.is-active .bar-lane--treated .bar-fill {
+  filter: brightness(1.08) saturate(1.1);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--beh) 55%, transparent);
 }
 
 .bar-value {
@@ -373,7 +504,7 @@
   font-weight: 650;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  animation: follow 0.95s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: follow 0.95s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
   animation-delay: var(--d, 0ms);
 }
 
@@ -481,12 +612,220 @@
   }
 }
 
+/* ---------- chart + donut layout ---------- */
+.chart-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 236px;
+  align-items: start;
+  gap: 8px 28px;
+}
+
+.chart-grid--single {
+  grid-template-columns: minmax(0, 1fr) 190px;
+}
+
+.donuts {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  padding-top: 4px;
+}
+
+.donuts__pair {
+  display: grid;
+  gap: 6px;
+}
+
+.donut {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  margin: 0;
+}
+
+.donut__ring {
+  position: relative;
+  width: 148px;
+  height: 148px;
+}
+
+.donut svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.donut__track {
+  stroke: color-mix(in srgb, var(--text) 8%, var(--surface));
+  stroke-width: 5.4;
+}
+
+.donut__seg {
+  stroke: var(--beh);
+  stroke-width: 5.4;
+  stroke-linecap: butt;
+  animation: donut-grow 1s cubic-bezier(0.3, 0.7, 0.2, 1) backwards;
+  transition: stroke-width 0.2s ease, opacity 0.25s ease, filter 0.25s ease;
+}
+
+@keyframes donut-grow {
+  from {
+    stroke-dasharray: 0 100;
+  }
+}
+
+.donut__seg.is-active,
+.donut__seg:hover {
+  stroke-width: 6.6;
+  filter: drop-shadow(0 0 3.5px color-mix(in srgb, var(--beh) 70%, transparent));
+}
+
+.donut__seg.is-dim {
+  opacity: 0.35;
+}
+
+.donut__seg.is-standout:not(.is-dim) {
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--beh) 55%, transparent));
+}
+
+.donut__center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1px;
+  pointer-events: none;
+}
+
+.donut__value {
+  font-size: 1.75rem;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.donut__label {
+  max-width: 88px;
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  text-align: center;
+}
+
+.donut__name {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.donut-key {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8rem;
+}
+
+.donut-key li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  transition: color 0.2s ease;
+}
+
+.donut-key li.is-active {
+  color: var(--text);
+}
+
+.donut-key__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+/* ---------- standout behavior: a slow glow, after the entrance finishes ---------- */
+.badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--beh) 16%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--beh) 40%, transparent);
+  color: var(--text);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  vertical-align: 2px;
+}
+
+.pair--standout .chip {
+  box-shadow: 0 0 18px color-mix(in srgb, var(--beh) 30%, transparent);
+  animation: pulse-glow 3.2s ease-in-out 2.6s infinite;
+}
+
+.pair--standout .bar-lane--treated .bar-fill {
+  box-shadow: 0 0 14px color-mix(in srgb, var(--beh) 42%, transparent);
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--beh) 34%, transparent), 0 0 16px color-mix(in srgb, var(--beh) 24%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 7px color-mix(in srgb, var(--beh) 0%, transparent), 0 0 30px color-mix(in srgb, var(--beh) 46%, transparent);
+  }
+}
+
+.chip {
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.pair:hover .chip,
+.pair.is-active .chip {
+  transform: scale(1.07);
+}
+
 /* ---------- small screens ---------- */
+@media (max-width: 900px) {
+  .chart-grid,
+  .chart-grid--single {
+    grid-template-columns: 1fr;
+  }
+
+  .donuts {
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  .donuts__pair {
+    grid-template-columns: repeat(2, auto);
+    gap: 20px;
+  }
+}
+
 @media (max-width: 760px) {
-  .hero {
-    flex-direction: column;
+  .hero,
+  .hero--with-stat {
+    grid-template-columns: 1fr;
     padding: 22px 20px;
     gap: 16px;
+  }
+
+  .hero__main {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .hero-stat {
+    justify-items: start;
+    text-align: left;
   }
 
   .chart-card {
@@ -516,5 +855,10 @@
 
   .timeline--animate {
     clip-path: none;
+  }
+
+  .summary::before,
+  .pair--standout .chip {
+    animation: none;
   }
 }
