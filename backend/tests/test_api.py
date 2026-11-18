@@ -11,14 +11,14 @@ client = TestClient(app)
 
 
 def test_health():
-    resp = client.get("/health")
+    resp = client.get("/api/health")
     assert resp.status_code == 200
     assert resp.json() == {"status": "ok"}
 
 
 def test_predict_shape():
     resp = client.post(
-        "/predict",
+        "/api/predict",
         files={"file": ("test.mp4", b"fake-bytes", "video/mp4")},
     )
     assert resp.status_code == 200
@@ -31,7 +31,7 @@ def test_predict_shape():
 
 def test_compare_shape():
     resp = client.post(
-        "/compare",
+        "/api/compare",
         files={
             "control": ("c.mp4", b"fake-bytes", "video/mp4"),
             "treated": ("t.mp4", b"fake-bytes", "video/mp4"),
@@ -43,5 +43,5 @@ def test_compare_shape():
 
 
 def test_job_not_found():
-    resp = client.get("/jobs/does-not-exist")
+    resp = client.get("/api/jobs/does-not-exist")
     assert resp.status_code == 404

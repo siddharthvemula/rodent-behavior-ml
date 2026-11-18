@@ -2,9 +2,18 @@
 Rodent Behavior ML API (backend skeleton).
 
 Implements the contract in ARCHITECTURE.md:
-- POST /predict  -> kicks off a behavior-classification job for one video/keypoint file.
-- POST /compare  -> kicks off a job comparing a control video against a treated video.
-- GET  /jobs/{job_id} -> poll for status/result.
+- POST /api/predict  -> kicks off a behavior-classification job for one video/keypoint file.
+- POST /api/compare  -> kicks off a job comparing a control video against a treated video.
+- GET  /api/jobs/{job_id} -> poll for status/result.
+
+Routes live under /api because this deploys as a Vercel Services project:
+the frontend and backend share one public domain, and a top-level rewrite
+sends everything under /api to this service, everything else to the
+frontend. See /vercel.json at the repo root. The frontend's
+VITE_API_BASE_URL is set to "/api" in production so no CORS setup is needed,
+same origin. (Flagging this prefix as a deliberate change to the original
+ARCHITECTURE.md contract, which didn't have it, see ARCHITECTURE.md for the
+updated version.)
 
 This is intentionally a skeleton: model inference is mocked so the frontend and
 the real /ml model can both build against this contract in parallel. Swap
@@ -16,10 +25,11 @@ import uuid
 from datetime import datetime, timezone
 from typing import Dict, List, Literal, Optional
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import APIRouter, FastAPI, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
 app = FastAPI(title="Rodent Behavior ML API")
+api = APIRouter(prefix="/api")
 
 # In-memory job store. Fine for local dev and the Nov 28 demo; replace with a
 # real queue/db (e.g. Redis, a Postgres table) before this needs to survive
@@ -73,7 +83,7 @@ def _mock_compare_result() -> dict:
     }
 
 
-@app.post("/predict", response_model=JobStatus)
+@api.post("/predict", response_model=JobStatus)
 async def predict(file: UploadFile = File(...)):
     job_id = _new_job()
     # Real version: enqueue a background task / worker that runs the /ml
@@ -83,7 +93,7 @@ async def predict(file: UploadFile = File(...)):
     return JobStatus(job_id=job_id, status=jobs[job_id]["status"], result=jobs[job_id]["result"])
 
 
-@app.post("/compare", response_model=JobStatus)
+@api.post("/compare", response_model=JobStatus)
 async def compare(control: UploadFile = File(...), treated: UploadFile = File(...)):
     job_id = _new_job()
     jobs[job_id]["status"] = "done"
@@ -91,7 +101,7 @@ async def compare(control: UploadFile = File(...), treated: UploadFile = File(..
     return JobStatus(job_id=job_id, status=jobs[job_id]["status"], result=jobs[job_id]["result"])
 
 
-@app.get("/jobs/{job_id}", response_model=JobStatus)
+@api.get("/jobs/{job_id}", response_model=JobStatus)
 async def get_job(job_id: str):
     job = jobs.get(job_id)
     if job is None:
@@ -99,6 +109,9 @@ async def get_job(job_id: str):
     return JobStatus(job_id=job_id, status=job["status"], result=job["result"])
 
 
-@app.get("/health")
+@api.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+app.include_router(api)
