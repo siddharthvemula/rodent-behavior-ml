@@ -38,10 +38,27 @@ export interface ApiClient {
 interface EnvLike {
   readonly VITE_API_BASE_URL?: string
   readonly VITE_USE_MOCK?: string
+  /** True in production builds (set by Vite). */
+  readonly PROD?: boolean
 }
 
+// Production builds are served from the same origin as the backend, which
+// vercel.json routes under /api, so that is the default there.
+const PRODUCTION_DEFAULT_BASE_URL = '/api'
+
+/**
+ * Mock (canned-data) mode is opt-in or dev-only, never an accident of a
+ * missing env var:
+ *  - VITE_USE_MOCK=true          -> mock, in any build
+ *  - VITE_API_BASE_URL set       -> live backend at that URL
+ *  - neither, production build   -> live backend at /api
+ *  - neither, dev/test           -> mock (frontend-only development)
+ * A deployed build that merely lacks VITE_API_BASE_URL (e.g. a Vercel preview
+ * environment) used to silently show fake results; it now talks to /api.
+ */
 export function configFromEnv(env: EnvLike): Pick<ApiConfig, 'baseUrl' | 'useMock'> {
-  const baseUrl = (env.VITE_API_BASE_URL ?? '').trim().replace(/\/+$/, '')
+  const configured = (env.VITE_API_BASE_URL ?? '').trim().replace(/\/+$/, '')
+  const baseUrl = configured || (env.PROD ? PRODUCTION_DEFAULT_BASE_URL : '')
   const useMock = env.VITE_USE_MOCK === 'true' || baseUrl.length === 0
   return { baseUrl, useMock }
 }
@@ -111,4 +128,5 @@ export function createApiClient(config: ApiConfig): ApiClient {
   }
 }
 
-export const api: ApiClient = createApiClient(configFromEnv(import.meta.env))
+export const apiConfig = configFromEnv(import.meta.env)
+export const api: ApiClient = createApiClient(apiConfig)

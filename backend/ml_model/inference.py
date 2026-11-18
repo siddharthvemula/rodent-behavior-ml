@@ -1,96 +1,92 @@
 """
-The two functions backend/main.py calls. Signatures match ARCHITECTURE.md's
+The two functions backend/main.py calls. Output shapes match ARCHITECTURE.md's
 API contract exactly (predict returns an ordered list of behavior segments,
-compare returns {control, treated, difference} frequency dicts) so swapping
-the model underneath (model.py) never requires a backend change.
+compare returns {control, treated, difference} frequency dicts), so swapping
+the model underneath never needs a backend change.
 
-This is a COPY of ml/inference.py (plus model.py, preprocess.py,
-model.joblib), kept in sync by hand for now. Vercel Services builds each
-service from its own root independently, so backend/ can't reach into
-../ml/ at runtime, it needs its own copy. When ml/'s real model replaces
-this one, copy the same 4 files over (see PROJECT_PLAN.md).
+Input is the canonical keypoints array from preprocess.parse_keypoints_json:
+float (T, 2, 7, 2), mouse 0 = resident, mouse 1 = intruder.
+
+Pipeline: resample to 30 Hz -> per-frame features -> HistGradientBoosting
+probabilities -> moving-average smoothing -> argmax -> merge runs into
+segments. All times are in seconds on the ORIGINAL recording's clock.
 """
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
-from .model import BEHAVIOR_LABELS, WINDOW_SECONDS, load_model
-from .preprocess import Frame, extract_features
+import numpy as np
 
-_model = None
+try:
+    from .features import compute_features
+    from .model import load_model, smooth_probs
+    from .preprocess import BEHAVIOR_LABELS, FRAME_RATE, resample_keypoints
+except ImportError:  # flat-script layout
+    from features import compute_features
+    from model import load_model, smooth_probs
+    from preprocess import BEHAVIOR_LABELS, FRAME_RATE, resample_keypoints
+
+_bundle = None
 
 
 def _get_model():
-    global _model
-    if _model is None:
-        _model = load_model()
-    return _model
+    global _bundle
+    if _bundle is None:
+        _bundle = load_model()
+    return _bundle
 
 
-def predict_behaviors(frames: List[Frame], frame_rate: float = 30.0) -> List[dict]:
-    """Classify a sequence of keypoint frames into behavior segments.
+def predict_frames(keypoints: np.ndarray, frame_rate: float = FRAME_RATE) -> Tuple[np.ndarray, np.ndarray]:
+    """Per-frame (labels, smoothed probabilities) on the 30 Hz resampled clock."""
+    clf, meta = _get_model()
+    kp = resample_keypoints(np.asarray(keypoints, dtype=np.float32), frame_rate)
+    probs = smooth_probs(clf.predict_proba(compute_features(kp)), meta["smoothing_window"])
+    return probs.argmax(axis=1), probs
 
-    Slides a fixed window across the frames, classifies each window, then
-    merges consecutive windows with the same label into one segment so the
-    output matches BehaviorSegment's {start_time, end_time, behavior_label,
-    confidence} shape (confidence = the model's probability for the label
-    it picked, averaged over the merged windows).
-    """
-    model = _get_model()
-    window_frames = max(int(WINDOW_SECONDS * frame_rate), 1)
 
-    windows = []
-    for start in range(0, len(frames) - window_frames + 1, window_frames) or [0]:
-        windows.append(frames[start : start + window_frames] or frames)
-    if not windows:
-        windows = [frames]
+def predict_behaviors(keypoints: np.ndarray, frame_rate: float = FRAME_RATE) -> List[dict]:
+    """Classify a recording into ordered {start_time, end_time, behavior_label,
+    confidence} segments covering the whole recording. confidence is the mean
+    smoothed probability of the chosen label over the segment."""
+    labels, probs = predict_frames(keypoints, frame_rate)
+    duration = len(keypoints) / frame_rate
 
-    features = [extract_features(w) for w in windows]
-    probs = model.predict_proba(features)
-    labels = [BEHAVIOR_LABELS[i] for i in probs.argmax(axis=1)]
-    confidences = probs.max(axis=1)
+    # Boundaries of runs of identical labels.
+    change = np.flatnonzero(np.diff(labels)) + 1
+    starts = np.concatenate([[0], change])
+    ends = np.concatenate([change, [len(labels)]])
 
     segments: List[dict] = []
-    for i, label in enumerate(labels):
-        start_time = round(i * window_frames / frame_rate, 2)
-        end_time = round((i + 1) * window_frames / frame_rate, 2)
-        if segments and segments[-1]["behavior_label"] == label:
-            segments[-1]["end_time"] = end_time
-            segments[-1]["_confidences"].append(confidences[i])
-        else:
-            segments.append(
-                {
-                    "start_time": start_time,
-                    "end_time": end_time,
-                    "behavior_label": label,
-                    "_confidences": [confidences[i]],
-                }
-            )
-
-    for seg in segments:
-        seg["confidence"] = round(float(sum(seg["_confidences"]) / len(seg["_confidences"])), 2)
-        del seg["_confidences"]
-
+    for a, b in zip(starts, ends):
+        label = int(labels[a])
+        # Resampling to 30 Hz can drop a fraction of a frame at the tail, so
+        # the last segment is pinned to the recording's true duration.
+        end = duration if b == len(labels) else min(b / FRAME_RATE, duration)
+        segments.append(
+            {
+                "start_time": round(float(min(a / FRAME_RATE, duration)), 2),
+                "end_time": round(float(end), 2),
+                "behavior_label": BEHAVIOR_LABELS[label],
+                "confidence": round(float(probs[a:b, label].mean()), 2),
+            }
+        )
     return segments
 
 
-def _behavior_frequencies(segments: List[dict]) -> Dict[str, float]:
-    total = sum(seg["end_time"] - seg["start_time"] for seg in segments)
-    if total <= 0:
-        return {label: 0.0 for label in BEHAVIOR_LABELS}
-    freq: Dict[str, float] = {label: 0.0 for label in BEHAVIOR_LABELS}
-    for seg in segments:
-        freq[seg["behavior_label"]] += seg["end_time"] - seg["start_time"]
-    return {label: round(duration / total, 2) for label, duration in freq.items()}
+def behavior_frequencies(keypoints: np.ndarray, frame_rate: float = FRAME_RATE) -> Dict[str, float]:
+    """Fraction of the recording spent in each of the four behaviors."""
+    labels, _ = predict_frames(keypoints, frame_rate)
+    counts = np.bincount(labels, minlength=len(BEHAVIOR_LABELS))
+    return {name: round(float(c) / len(labels), 2) for name, c in zip(BEHAVIOR_LABELS, counts)}
 
 
 def compare_behaviors(
-    control_frames: List[Frame],
-    treated_frames: List[Frame],
-    control_frame_rate: float = 30.0,
-    treated_frame_rate: float = 30.0,
+    control: np.ndarray,
+    treated: np.ndarray,
+    control_frame_rate: float = FRAME_RATE,
+    treated_frame_rate: float = FRAME_RATE,
 ) -> dict:
-    control_freq = _behavior_frequencies(predict_behaviors(control_frames, control_frame_rate))
-    treated_freq = _behavior_frequencies(predict_behaviors(treated_frames, treated_frame_rate))
-    difference = {
-        label: round(treated_freq[label] - control_freq[label], 2) for label in BEHAVIOR_LABELS
-    }
+    """Run the classifier on each recording separately and diff the behavior
+    frequencies (treated minus control)."""
+    control_freq = behavior_frequencies(control, control_frame_rate)
+    treated_freq = behavior_frequencies(treated, treated_frame_rate)
+    difference = {k: round(treated_freq[k] - control_freq[k], 2) for k in BEHAVIOR_LABELS}
     return {"control": control_freq, "treated": treated_freq, "difference": difference}

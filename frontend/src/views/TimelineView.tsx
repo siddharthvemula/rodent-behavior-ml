@@ -34,8 +34,8 @@ export function TimelineView({ api = defaultApi }: TimelineViewProps) {
 
       <form className="card form" onSubmit={handleSubmit}>
         <FilePicker
-          label="Video or keypoint file"
-          hint="A recording or its pre-extracted pose keypoints."
+          label="Keypoints file (JSON)"
+          hint="Pose keypoints of the two mice as JSON. Raw video is not supported yet."
           onChange={handleFileChange}
           disabled={isLoading}
         />

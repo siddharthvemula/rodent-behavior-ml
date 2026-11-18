@@ -9,8 +9,8 @@ function fakeApi(compare: ApiClient['compare']): Pick<ApiClient, 'compare'> {
   return { compare }
 }
 
-const control = new File(['c'], 'control.mp4', { type: 'video/mp4' })
-const treated = new File(['t'], 'treated.mp4', { type: 'video/mp4' })
+const control = new File(['{}'], 'control.json', { type: 'application/json' })
+const treated = new File(['{}'], 'treated.json', { type: 'application/json' })
 
 describe('CompareView', () => {
   it('requires both control and treated files before running', async () => {
@@ -35,12 +35,12 @@ describe('CompareView', () => {
 
     expect(compare).toHaveBeenCalledWith(control, treated)
     const table = await screen.findByRole('table', { name: /behavior frequency comparison/i })
-    const groomingRow = within(table).getByRole('row', { name: /grooming/i })
-    expect(within(groomingRow).getByText('0.40')).toBeInTheDocument()
-    expect(within(groomingRow).getByText('0.12')).toBeInTheDocument()
-    expect(within(groomingRow).getByText('-0.28')).toBeInTheDocument()
+    const attackRow = within(table).getByRole('row', { name: /attack/i })
+    expect(within(attackRow).getByText('0.05')).toBeInTheDocument()
+    expect(within(attackRow).getByText('0.20')).toBeInTheDocument()
+    expect(within(attackRow).getByText('+0.15')).toBeInTheDocument()
     const investigationRow = within(table).getByRole('row', { name: /investigation/i })
-    expect(within(investigationRow).getByText('+0.13')).toBeInTheDocument()
+    expect(within(investigationRow).getByText('-0.05')).toBeInTheDocument()
   })
 
   it('shows the error when comparison fails', async () => {

@@ -20,6 +20,7 @@ build/
 
 # Data and model weights (never commit raw datasets or trained models)
 /data/raw/
+/data/processed/
 *.pt
 *.pth
 *.ckpt

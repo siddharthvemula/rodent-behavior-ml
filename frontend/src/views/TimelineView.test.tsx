@@ -9,7 +9,7 @@ function fakeApi(predict: ApiClient['predict']): Pick<ApiClient, 'predict'> {
   return { predict }
 }
 
-const video = new File(['frames'], 'mouse-01.mp4', { type: 'video/mp4' })
+const video = new File(['{}'], 'mouse-01.json', { type: 'application/json' })
 
 describe('TimelineView', () => {
   it('keeps the run button disabled until a file is selected', async () => {
@@ -17,7 +17,7 @@ describe('TimelineView', () => {
     const button = screen.getByRole('button', { name: /predict behaviors/i })
     expect(button).toBeDisabled()
 
-    const input = screen.getByLabelText<HTMLInputElement>(/video or keypoint file/i)
+    const input = screen.getByLabelText<HTMLInputElement>(/keypoints file/i)
     await userEvent.upload(input, video)
 
     expect(button).toBeEnabled()
@@ -28,14 +28,14 @@ describe('TimelineView', () => {
     const predict = vi.fn<ApiClient['predict']>().mockResolvedValue(predictMock.result)
     render(<TimelineView api={fakeApi(predict)} />)
 
-    await userEvent.upload(screen.getByLabelText(/video or keypoint file/i), video)
+    await userEvent.upload(screen.getByLabelText(/keypoints file/i), video)
     await userEvent.click(screen.getByRole('button', { name: /predict behaviors/i }))
 
     expect(predict).toHaveBeenCalledWith(video)
     const table = await screen.findByRole('table', { name: /predicted segments/i })
     const rows = within(table).getAllByRole('row')
     expect(rows).toHaveLength(4) // header + 3 segments
-    expect(within(rows[1]).getByText('grooming')).toBeInTheDocument()
+    expect(within(rows[1]).getByText('other')).toBeInTheDocument()
     expect(within(rows[1]).getByText('91%')).toBeInTheDocument()
     expect(screen.getByRole('img', { name: /behavior timeline/i })).toBeInTheDocument()
   })
@@ -44,7 +44,7 @@ describe('TimelineView', () => {
     const predict = vi.fn<ApiClient['predict']>().mockRejectedValue(new Error('Backend returned 500: boom'))
     render(<TimelineView api={fakeApi(predict)} />)
 
-    await userEvent.upload(screen.getByLabelText(/video or keypoint file/i), video)
+    await userEvent.upload(screen.getByLabelText(/keypoints file/i), video)
     await userEvent.click(screen.getByRole('button', { name: /predict behaviors/i }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Backend returned 500: boom')
@@ -54,7 +54,7 @@ describe('TimelineView', () => {
     const predict = vi.fn<ApiClient['predict']>().mockResolvedValue([])
     render(<TimelineView api={fakeApi(predict)} />)
 
-    await userEvent.upload(screen.getByLabelText(/video or keypoint file/i), video)
+    await userEvent.upload(screen.getByLabelText(/keypoints file/i), video)
     await userEvent.click(screen.getByRole('button', { name: /predict behaviors/i }))
 
     expect(await screen.findByText(/no behaviors detected/i)).toBeInTheDocument()

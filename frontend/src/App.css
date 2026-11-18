@@ -123,6 +123,19 @@
   cursor: not-allowed;
 }
 
+/* Demo-mode banner */
+.banner {
+  margin: 0 0 16px;
+  padding: 10px 16px;
+  border-radius: var(--radius);
+}
+
+.banner--demo {
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  border: 1px solid var(--warn-text);
+}
+
 /* Status */
 .status {
   margin: 0;

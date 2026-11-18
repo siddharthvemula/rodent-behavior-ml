@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { apiConfig } from './api/client'
 import { CompareView } from './views/CompareView'
 import { TimelineView } from './views/TimelineView'
 import './App.css'
@@ -10,7 +11,12 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]['id']
 
-function App() {
+interface AppProps {
+  /** Whether the API client is serving canned data; defaults to the real config. */
+  readonly mockMode?: boolean
+}
+
+function App({ mockMode = apiConfig.useMock }: AppProps) {
   const [activeTab, setActiveTab] = useState<TabId>('timeline')
 
   return (
@@ -18,6 +24,13 @@ function App() {
       <header className="app__header">
         <h1>Rodent Behavior Diagnosis</h1>
       </header>
+
+      {mockMode && (
+        <p className="banner banner--demo" role="note">
+          <strong>Demo mode.</strong> Results are canned sample data: the backend is not being called and uploaded
+          files are ignored.
+        </p>
+      )}
 
       <nav className="tabs" role="tablist" aria-label="Views">
         {TABS.map((tab) => (

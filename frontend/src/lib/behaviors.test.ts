@@ -3,9 +3,9 @@ import { buildColorMap, buildCompareRows, formatSeconds, summarizeTimeline } fro
 import type { BehaviorSegment } from '../api/types'
 
 const segments: BehaviorSegment[] = [
-  { start_time: 0, end_time: 4, behavior_label: 'grooming', confidence: 0.9 },
-  { start_time: 4, end_time: 6, behavior_label: 'rearing', confidence: 0.8 },
-  { start_time: 6, end_time: 10, behavior_label: 'grooming', confidence: 0.7 },
+  { start_time: 0, end_time: 4, behavior_label: 'investigation', confidence: 0.9 },
+  { start_time: 4, end_time: 6, behavior_label: 'other', confidence: 0.8 },
+  { start_time: 6, end_time: 10, behavior_label: 'investigation', confidence: 0.7 },
 ]
 
 describe('summarizeTimeline', () => {
@@ -13,8 +13,8 @@ describe('summarizeTimeline', () => {
     const summary = summarizeTimeline(segments)
     expect(summary.duration).toBe(10)
     expect(summary.totals).toEqual([
-      { label: 'grooming', seconds: 8, share: 0.8 },
-      { label: 'rearing', seconds: 2, share: 0.2 },
+      { label: 'investigation', seconds: 8, share: 0.8 },
+      { label: 'other', seconds: 2, share: 0.2 },
     ])
   })
 
@@ -31,12 +31,12 @@ describe('summarizeTimeline', () => {
 describe('buildCompareRows', () => {
   it('unions behaviors across control and treated and keeps the backend difference', () => {
     const rows = buildCompareRows({
-      control: { grooming: 0.4, rearing: 0.6 },
-      treated: { grooming: 0.1, digging: 0.9 },
-      difference: { grooming: -0.3, rearing: -0.6, digging: 0.9 },
+      control: { attack: 0.4, other: 0.6 },
+      treated: { attack: 0.1, mount: 0.9 },
+      difference: { attack: -0.3, other: -0.6, mount: 0.9 },
     })
-    expect(rows.map((r) => r.label)).toEqual(['digging', 'rearing', 'grooming'])
-    expect(rows.find((r) => r.label === 'rearing')).toEqual({ label: 'rearing', control: 0.6, treated: 0, difference: -0.6 })
+    expect(rows.map((r) => r.label)).toEqual(['mount', 'other', 'attack'])
+    expect(rows.find((r) => r.label === 'other')).toEqual({ label: 'other', control: 0.6, treated: 0, difference: -0.6 })
   })
 
   it('falls back to treated minus control when the backend omits a difference', () => {
@@ -46,14 +46,30 @@ describe('buildCompareRows', () => {
 })
 
 describe('buildColorMap', () => {
-  it('gives every distinct label a distinct color', () => {
-    const colors = buildColorMap(['grooming', 'rearing', 'investigation', 'grooming'])
-    expect(Object.keys(colors).sort()).toEqual(['grooming', 'investigation', 'rearing'])
-    expect(new Set(Object.values(colors)).size).toBe(3)
+  const ALL = ['attack', 'investigation', 'mount', 'other']
+
+  it('gives every behavior in the fixed vocabulary a distinct color', () => {
+    const colors = buildColorMap(ALL)
+    expect(Object.keys(colors).sort()).toEqual(ALL)
+    expect(new Set(Object.values(colors)).size).toBe(4)
+  })
+
+  it('gives a label the same color no matter which other labels are present', () => {
+    const full = buildColorMap(ALL)
+    for (const label of ALL) {
+      expect(buildColorMap([label])[label]).toBe(full[label])
+    }
+    expect(buildColorMap(['other', 'investigation']).investigation).toBe(full.investigation)
   })
 
   it('is independent of input order', () => {
-    expect(buildColorMap(['b', 'a'])).toEqual(buildColorMap(['a', 'b']))
+    expect(buildColorMap(['other', 'attack'])).toEqual(buildColorMap(['attack', 'other']))
+  })
+
+  it('still gives labels outside the vocabulary distinct colors that do not collide with known ones', () => {
+    const colors = buildColorMap([...ALL, 'zzz', 'aaa'])
+    expect(new Set(Object.values(colors)).size).toBe(6)
+    expect(colors.aaa).not.toBe(colors.zzz)
   })
 })
 

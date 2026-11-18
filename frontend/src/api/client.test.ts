@@ -36,6 +36,23 @@ describe('configFromEnv', () => {
   it('forces mock mode when VITE_USE_MOCK is "true"', () => {
     expect(configFromEnv({ VITE_API_BASE_URL: 'http://x', VITE_USE_MOCK: 'true' }).useMock).toBe(true)
   })
+
+  it('a production build without VITE_API_BASE_URL talks to the same-origin /api, never canned data', () => {
+    expect(configFromEnv({ PROD: true })).toEqual({ baseUrl: '/api', useMock: false })
+    expect(configFromEnv({ PROD: true, VITE_API_BASE_URL: '   ' })).toEqual({ baseUrl: '/api', useMock: false })
+  })
+
+  it('an explicit VITE_API_BASE_URL wins over the production default', () => {
+    expect(configFromEnv({ PROD: true, VITE_API_BASE_URL: 'https://api.example.com/' })).toEqual({
+      baseUrl: 'https://api.example.com',
+      useMock: false,
+    })
+  })
+
+  it('mock mode in a production build is possible only by explicit opt-in', () => {
+    expect(configFromEnv({ PROD: true, VITE_USE_MOCK: 'true' }).useMock).toBe(true)
+    expect(configFromEnv({ PROD: true, VITE_USE_MOCK: 'false' }).useMock).toBe(false)
+  })
 })
 
 describe('mock mode', () => {
@@ -122,7 +139,7 @@ describe('compare against the live backend', () => {
 
     const result = await liveClient(fetchImpl).compare(makeFile('c.mp4'), makeFile('t.mp4'))
 
-    expect(result.difference.grooming).toBeCloseTo(-0.28)
+    expect(result.difference.attack).toBeCloseTo(0.15)
     const [url, init] = fetchImpl.mock.calls[0]
     expect(url).toBe(`${BASE_URL}/compare`)
     const body = init?.body as FormData
