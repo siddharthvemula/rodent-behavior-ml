@@ -12,8 +12,6 @@
   --down: #b91c1c;
   --error-bg: #fef2f2;
   --error-text: #991b1b;
-  --note-bg: #fffbeb;
-  --note-text: #92400e;
   --radius: 10px;
 
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -37,8 +35,6 @@
     --down: #f87171;
     --error-bg: #2a1215;
     --error-text: #fca5a5;
-    --note-bg: #2a2110;
-    --note-text: #fcd34d;
   }
 }
 

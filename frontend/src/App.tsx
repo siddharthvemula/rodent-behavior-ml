@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { isMockMode } from './api/client'
 import { CompareView } from './views/CompareView'
 import { TimelineView } from './views/TimelineView'
 import './App.css'
@@ -18,12 +17,6 @@ function App() {
     <div className="app">
       <header className="app__header">
         <h1>Rodent Behavior Diagnosis</h1>
-        <p className="muted">Supervised behavior classification on mouse social-interaction pose data.</p>
-        {isMockMode && (
-          <p className="banner" role="note">
-            Showing mock data. Set <code>VITE_API_BASE_URL</code> to connect to the backend.
-          </p>
-        )}
       </header>
 
       <nav className="tabs" role="tablist" aria-label="Views">
@@ -52,10 +45,6 @@ function App() {
           <CompareView />
         </section>
       </main>
-
-      <footer className="app__footer muted">
-        Built on CalMS21 and MABe22 (CC BY-NC-SA 4.0, non-commercial use).
-      </footer>
     </div>
   )
 }

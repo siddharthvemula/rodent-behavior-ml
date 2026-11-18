@@ -112,4 +112,3 @@ export function createApiClient(config: ApiConfig): ApiClient {
 }
 
 export const api: ApiClient = createApiClient(configFromEnv(import.meta.env))
-export const isMockMode: boolean = configFromEnv(import.meta.env).useMock

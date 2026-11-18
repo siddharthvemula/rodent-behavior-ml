@@ -24,9 +24,4 @@ describe('App', () => {
     expect(input.files?.[0]?.name).toBe('kept.mp4')
     expect(screen.getByRole('button', { name: /predict behaviors/i })).toBeEnabled()
   })
-
-  it('tells the user when results are mocked', () => {
-    render(<App />)
-    expect(screen.getByText(/mock data/i)).toBeInTheDocument()
-  })
 })

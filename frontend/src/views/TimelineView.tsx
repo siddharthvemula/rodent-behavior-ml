@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { api as defaultApi, type ApiClient } from '../api/client'
 import type { BehaviorSegment } from '../api/types'
 import { BehaviorTimeline } from '../components/BehaviorTimeline'
@@ -10,25 +10,9 @@ interface TimelineViewProps {
   readonly api?: Pick<ApiClient, 'predict'>
 }
 
-/** Local preview URL for a selected video; null for non-video files or where unsupported. */
-function useVideoPreviewUrl(file: File | null): string | null {
-  const [url, setUrl] = useState<string | null>(null)
-  useEffect(() => {
-    if (!file || !file.type.startsWith('video/') || typeof URL.createObjectURL !== 'function') {
-      setUrl(null)
-      return
-    }
-    const objectUrl = URL.createObjectURL(file)
-    setUrl(objectUrl)
-    return () => URL.revokeObjectURL(objectUrl)
-  }, [file])
-  return url
-}
-
 export function TimelineView({ api = defaultApi }: TimelineViewProps) {
   const [file, setFile] = useState<File | null>(null)
   const { state, run, reset } = useAsyncTask<readonly BehaviorSegment[]>()
-  const previewUrl = useVideoPreviewUrl(file)
   const isLoading = state.status === 'loading'
 
   function handleFileChange(next: File | null) {
@@ -59,8 +43,6 @@ export function TimelineView({ api = defaultApi }: TimelineViewProps) {
           {isLoading ? 'Predicting…' : 'Predict behaviors'}
         </button>
       </form>
-
-      {previewUrl && <video className="card preview" src={previewUrl} controls muted />}
 
       <StatusMessage state={state} loadingText="Running behavior classifier…" />
       {state.status === 'success' && (
