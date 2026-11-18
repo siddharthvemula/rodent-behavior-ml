@@ -3,13 +3,16 @@ import { apiConfig } from './api/client'
 import { ViewToggle } from './components/ViewToggle'
 import { useViewMode } from './lib/useViewMode'
 import { CompareView } from './views/CompareView'
+import { PharmacologyView } from './views/PharmacologyView'
 import { TimelineView } from './views/TimelineView'
 import './App.css'
 import './summary.css'
+import './pharmacology.css'
 
 const TABS = [
   { id: 'timeline', label: 'Timeline' },
   { id: 'compare', label: 'Compare recordings' },
+  { id: 'pharmacology', label: 'Pharmacology demo' },
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
@@ -40,7 +43,7 @@ function App({ mockMode = apiConfig.useMock }: AppProps) {
         <ViewToggle mode={viewMode} onChange={setViewMode} />
       </header>
 
-      {mockMode && (
+      {mockMode && activeTab !== 'pharmacology' && (
         <p className="banner banner--demo" role="note">
           <strong>Demo mode.</strong> Results are canned sample data: the backend is not being called and uploaded
           files are ignored.
@@ -71,6 +74,14 @@ function App({ mockMode = apiConfig.useMock }: AppProps) {
         </section>
         <section id="panel-compare" role="tabpanel" aria-labelledby="tab-compare" hidden={activeTab !== 'compare'}>
           <CompareView mode={viewMode} onShowDetail={() => setViewMode('detail')} />
+        </section>
+        <section
+          id="panel-pharmacology"
+          role="tabpanel"
+          aria-labelledby="tab-pharmacology"
+          hidden={activeTab !== 'pharmacology'}
+        >
+          <PharmacologyView />
         </section>
       </main>
     </div>
