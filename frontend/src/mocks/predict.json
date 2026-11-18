@@ -1,0 +1,9 @@
+{
+  "job_id": "mock-predict-job",
+  "status": "done",
+  "result": [
+    { "start_time": 0.0, "end_time": 4.2, "behavior_label": "grooming", "confidence": 0.91 },
+    { "start_time": 4.2, "end_time": 9.8, "behavior_label": "investigation", "confidence": 0.77 },
+    { "start_time": 9.8, "end_time": 15.0, "behavior_label": "rearing", "confidence": 0.84 }
+  ]
+}
