@@ -122,7 +122,7 @@ describe('compare against the live backend', () => {
 
     const result = await liveClient(fetchImpl).compare(makeFile('c.mp4'), makeFile('t.mp4'))
 
-    expect(result.difference.grooming).toBeCloseTo(-0.28)
+    expect(result.difference.attack).toBeCloseTo(0.15)
     const [url, init] = fetchImpl.mock.calls[0]
     expect(url).toBe(`${BASE_URL}/compare`)
     const body = init?.body as FormData

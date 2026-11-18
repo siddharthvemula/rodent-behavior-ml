@@ -15,16 +15,25 @@ same origin. (Flagging this prefix as a deliberate change to the original
 ARCHITECTURE.md contract, which didn't have it, see ARCHITECTURE.md for the
 updated version.)
 
-Model inference: if the uploaded file parses as the keypoints JSON contract
-(see ml/preprocess.py), this calls a real model (backend/ml_model/, a copy
-of ml/, see that package's docstring for why it's duplicated). That model
-is currently trained on SYNTHETIC data, not CalMS21/MABe22, it's a
-placeholder standing in for krishtotala105's real pipeline (issue #1), done
-Nov 17-18 to keep the team moving, not a replacement for that work. If the
-upload doesn't parse as keypoints (e.g. it's a raw video, no pose-extraction
-step exists yet), this falls back to the original hardcoded mock rather
-than pretending to classify something it can't. See ARCHITECTURE.md.
+Model inference: an upload that parses as the keypoints JSON contract (see
+ml/preprocess.py and ARCHITECTURE.md "Data schema") is classified by the
+CalMS21-trained scikit-learn model in backend/ml_model/ (a byte-for-byte copy
+of the matching files in ml/, enforced by tests/test_ml_sync.py; see that
+package's docstring for why it's duplicated). Labels are attack /
+investigation / mount / other.
+
+Two other kinds of upload:
+  * JSON that is clearly an attempt at keypoints (has a "frames" key) but
+    doesn't match the contract gets a 422 with the reason. It is never
+    answered with made-up results.
+  * Anything that isn't JSON (e.g. a raw video) can't be classified, since
+    no pose-extraction step exists yet. For now these still get the
+    hardcoded demo result below so the upload flow keeps working; this is a
+    known stopgap, flagged in the PR and ARCHITECTURE.md, and the result is
+    NOT a real prediction.
 """
+import json
+import logging
 import sys
 import uuid
 from datetime import datetime, timezone
@@ -37,6 +46,8 @@ from pydantic import BaseModel
 sys.path.insert(0, str(Path(__file__).parent))
 from ml_model.inference import compare_behaviors, predict_behaviors
 from ml_model.preprocess import KeypointsFormatError, parse_keypoints_json
+
+logger = logging.getLogger("rodent-behavior-api")
 
 app = FastAPI(title="Rodent Behavior ML API")
 api = APIRouter(prefix="/api")
@@ -101,34 +112,60 @@ def _new_job() -> str:
     return job_id
 
 
+def _looks_like_keypoints_attempt(content: bytes) -> bool:
+    """True if the upload is JSON that was clearly meant to be a keypoints
+    file (an object with a "frames" key), as opposed to e.g. a video."""
+    try:
+        data = json.loads(content)
+    except (ValueError, UnicodeDecodeError):
+        return False
+    return isinstance(data, dict) and "frames" in data
+
+
+def _parse_or_fallback(content: bytes, field_name: str):
+    """Returns (keypoints, frame_rate), or None if the upload isn't JSON at
+    all (video fallback). Raises HTTP 422 for malformed keypoints JSON."""
+    try:
+        return parse_keypoints_json(content)
+    except KeypointsFormatError as exc:
+        if _looks_like_keypoints_attempt(content):
+            raise HTTPException(
+                status_code=422,
+                detail=f"'{field_name}' is not a valid keypoints file: {exc}. See ARCHITECTURE.md 'Data schema'.",
+            ) from exc
+        return None
+
+
+# STOPGAP, not a prediction: returned only for uploads that aren't keypoints
+# JSON (raw video), because there is no pose-extraction step yet. Uses the
+# real label set so the UI renders; the numbers are made up.
 def _mock_predict_result() -> List[dict]:
-    # Placeholder until /ml ships a real model. Shape matches ARCHITECTURE.md.
     return [
-        {"start_time": 0.0, "end_time": 4.2, "behavior_label": "grooming", "confidence": 0.91},
+        {"start_time": 0.0, "end_time": 4.2, "behavior_label": "other", "confidence": 0.91},
         {"start_time": 4.2, "end_time": 9.8, "behavior_label": "investigation", "confidence": 0.77},
-        {"start_time": 9.8, "end_time": 15.0, "behavior_label": "rearing", "confidence": 0.84},
+        {"start_time": 9.8, "end_time": 15.0, "behavior_label": "mount", "confidence": 0.84},
     ]
 
 
 def _mock_compare_result() -> dict:
     return {
-        "control": {"grooming": 0.40, "investigation": 0.35, "rearing": 0.25},
-        "treated": {"grooming": 0.12, "investigation": 0.48, "rearing": 0.40},
-        "difference": {"grooming": -0.28, "investigation": 0.13, "rearing": 0.15},
+        "control": {"attack": 0.05, "investigation": 0.35, "mount": 0.10, "other": 0.50},
+        "treated": {"attack": 0.20, "investigation": 0.30, "mount": 0.05, "other": 0.45},
+        "difference": {"attack": 0.15, "investigation": -0.05, "mount": -0.05, "other": -0.05},
     }
 
 
 @api.post("/predict", response_model=JobStatus)
 async def predict(file: UploadFile = File(...)):
     content = await _read_and_validate(file, "file")
+    parsed = _parse_or_fallback(content, "file")
     job_id = _new_job()
-    # Real inference if this parses as keypoints; otherwise fall back to the
-    # mock rather than guess at a video file we have no pose-extraction for.
-    try:
-        frames, frame_rate = parse_keypoints_json(content)
-        result = predict_behaviors(frames, frame_rate)
-    except KeypointsFormatError:
+    if parsed is None:
+        logger.warning("predict: upload is not keypoints JSON, returning the demo stopgap result")
         result = _mock_predict_result()
+    else:
+        keypoints, frame_rate = parsed
+        result = predict_behaviors(keypoints, frame_rate)
     jobs[job_id]["status"] = "done"
     jobs[job_id]["result"] = result
     return JobStatus(job_id=job_id, status=jobs[job_id]["status"], result=jobs[job_id]["result"])
@@ -138,13 +175,21 @@ async def predict(file: UploadFile = File(...)):
 async def compare(control: UploadFile = File(...), treated: UploadFile = File(...)):
     control_content = await _read_and_validate(control, "control")
     treated_content = await _read_and_validate(treated, "treated")
+    control_parsed = _parse_or_fallback(control_content, "control")
+    treated_parsed = _parse_or_fallback(treated_content, "treated")
+    if (control_parsed is None) != (treated_parsed is None):
+        raise HTTPException(
+            status_code=422,
+            detail="'control' and 'treated' must both be keypoints JSON (or both videos); got one of each",
+        )
     job_id = _new_job()
-    try:
-        control_frames, control_rate = parse_keypoints_json(control_content)
-        treated_frames, treated_rate = parse_keypoints_json(treated_content)
-        result = compare_behaviors(control_frames, treated_frames, control_rate, treated_rate)
-    except KeypointsFormatError:
+    if control_parsed is None or treated_parsed is None:
+        logger.warning("compare: uploads are not keypoints JSON, returning the demo stopgap result")
         result = _mock_compare_result()
+    else:
+        control_kp, control_rate = control_parsed
+        treated_kp, treated_rate = treated_parsed
+        result = compare_behaviors(control_kp, treated_kp, control_rate, treated_rate)
     jobs[job_id]["status"] = "done"
     jobs[job_id]["result"] = result
     return JobStatus(job_id=job_id, status=jobs[job_id]["status"], result=jobs[job_id]["result"])

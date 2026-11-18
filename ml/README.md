@@ -35,7 +35,7 @@ Caveats, read these before quoting a number:
 
 Per the plan, a GRU/1D-CNN is only warranted if this macro-F1 were bad. It is not, so the baseline ships.
 
-Not done yet: migrate `backend/ml_model/`, backend tests, mock data and the frontend to this model (the backend still serves the old placeholder; see "Replacing the placeholder" below).
+Backend and frontend are migrated to this model (`backend/ml_model/` is a copy, enforced by `backend/tests/test_ml_sync.py`).
 
 ### Quick start
 ```
@@ -52,9 +52,9 @@ pytest ml/tests
 
 30 Hz, 1024x570 px, 7 keypoints per mouse, mouse 0 = resident, mouse 1 = intruder. Report **macro-F1 and per-class F1**, never plain accuracy (`other` is ~60%). Note the train/test class balance differs (mount 5.6% -> 12.2%, attack 2.8% -> 4.8%), so validation scores from a split of train will not exactly predict test. Train/test are split by animal identity, so always split by recording, never by frame.
 
-### Replacing the placeholder in the backend (next PR)
+### Updating the backend after retraining
 1. Keep `predict_behaviors` / `compare_behaviors` signatures in `inference.py` (the backend calls them).
-2. Copy `features.py`, `model.py`, `preprocess.py`, `inference.py` and `model.joblib` into `backend/ml_model/`, overwriting the placeholder copies. See `backend/ml_model/inference.py`'s docstring for why that duplication exists (Vercel Services builds `backend/` independently from `ml/`).
+2. `cp ml/{features,model,preprocess,inference}.py ml/model.joblib backend/ml_model/` (CI fails if you forget). See `backend/ml_model/inference.py`'s docstring for why that duplication exists (Vercel Services builds `backend/` independently from `ml/`).
 
 ## Dataset
 [CalMS21](https://data.caltech.edu/records/s0vdx-0k302) Task 1 (classic classification). Cite the CalMS21 paper (Sun et al., 2021, "The Multi-Agent Behavior Dataset: Mouse Dyadic Social Interactions"). The Caltech record lists it as CC BY 4.0; we stay non-commercial regardless. Never commit the raw data (`/data/raw/` and `/data/processed/` are gitignored). MABe22 was dropped, see `../ARCHITECTURE.md`.
@@ -69,8 +69,9 @@ pytest ml/tests
   train.py           # CV + fit + test evaluation, writes model.joblib/metrics.json
   inference.py       # predict_behaviors / compare_behaviors (what the backend calls)
   model.joblib, metrics.json
+  export_clip.py     # slice a CalMS21 recording into an upload-ready JSON for demos
   tests/             # pytest, run in CI
 ```
 
 ## Output contract
-`inference.py` must return results matching exactly what `/backend/main.py`'s mocked `_mock_predict_result()` and `_mock_compare_result()` return right now, an ordered list of `{start_time, end_time, behavior_label, confidence}` for predict, and `{control, treated, difference}` frequency dicts for compare. Check `../ARCHITECTURE.md` and `../backend/main.py` before changing that shape, the backend and frontend are already built against it.
+`inference.py` must return results in the shape `/backend/main.py`'s response models expect (the stopgap `_mock_predict_result()` / `_mock_compare_result()` there use the same shape), an ordered list of `{start_time, end_time, behavior_label, confidence}` for predict, and `{control, treated, difference}` frequency dicts for compare. Check `../ARCHITECTURE.md` and `../backend/main.py` before changing that shape, the backend and frontend are already built against it.

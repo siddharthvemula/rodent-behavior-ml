@@ -35,7 +35,7 @@ describe('TimelineView', () => {
     const table = await screen.findByRole('table', { name: /predicted segments/i })
     const rows = within(table).getAllByRole('row')
     expect(rows).toHaveLength(4) // header + 3 segments
-    expect(within(rows[1]).getByText('grooming')).toBeInTheDocument()
+    expect(within(rows[1]).getByText('other')).toBeInTheDocument()
     expect(within(rows[1]).getByText('91%')).toBeInTheDocument()
     expect(screen.getByRole('img', { name: /behavior timeline/i })).toBeInTheDocument()
   })

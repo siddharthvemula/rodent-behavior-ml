@@ -18,26 +18,37 @@ export interface CompareRow {
   readonly difference: number
 }
 
-// Categorical palette, readable on both light and dark backgrounds.
-const BEHAVIOR_PALETTE = [
-  '#3b82f6',
-  '#f59e0b',
-  '#10b981',
-  '#ef4444',
-  '#8b5cf6',
-  '#ec4899',
-  '#14b8a6',
-  '#84cc16',
-] as const
+// The backend's behavior vocabulary is fixed (CalMS21 Task 1, see
+// ARCHITECTURE.md "Data schema"), so each known label has ONE color
+// everywhere. Colors must not depend on which labels happen to appear in a
+// given clip, or the same behavior would change color between recordings and
+// between the timeline and comparison views. `other` is the ~60% background
+// class, so it is a quiet neutral rather than a vivid color.
+const KNOWN_BEHAVIOR_COLORS: Readonly<Record<string, string>> = {
+  attack: '#ef4444',
+  investigation: '#3b82f6',
+  mount: '#8b5cf6',
+  other: '#9ca3af',
+}
+
+// Fallback for any label outside the fixed vocabulary (e.g. a future backend
+// change); distinct from the four above.
+const EXTRA_PALETTE = ['#f59e0b', '#10b981', '#ec4899', '#14b8a6', '#84cc16'] as const
 
 /**
- * Assigns each distinct label a palette color by its sorted position, so
- * colors never collide for up to BEHAVIOR_PALETTE.length behaviors and the
- * same label set always gets the same colors.
+ * Maps each distinct label to a color. Known labels always get their fixed
+ * color; unknown labels get an extra-palette color by sorted position, so the
+ * result is independent of input order.
  */
 export function buildColorMap(labels: readonly string[]): Readonly<Record<string, string>> {
   const unique = [...new Set(labels)].sort()
-  return Object.fromEntries(unique.map((label, i) => [label, BEHAVIOR_PALETTE[i % BEHAVIOR_PALETTE.length]]))
+  const unknown = unique.filter((label) => !(label in KNOWN_BEHAVIOR_COLORS))
+  return Object.fromEntries(
+    unique.map((label) => [
+      label,
+      KNOWN_BEHAVIOR_COLORS[label] ?? EXTRA_PALETTE[unknown.indexOf(label) % EXTRA_PALETTE.length],
+    ]),
+  )
 }
 
 export function formatSeconds(totalSeconds: number): string {

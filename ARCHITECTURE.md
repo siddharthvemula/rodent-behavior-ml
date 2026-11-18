@@ -61,5 +61,14 @@ Vercel Functions cap every request body at 4.5MB, with no way to raise it, this 
 - Source data: CalMS21 Task 1 (`task1_classic_classification.zip`, ~457 MB) from [CaltechDATA](https://data.caltech.edu/records/s0vdx-0k302). Cite the CalMS21 paper. Never commit raw data (`/data/raw/` is gitignored). Note the Caltech record page lists CalMS21 as CC BY 4.0, not the CC BY-NC-SA in PROJECT_PLAN.md; we're staying non-commercial and citing regardless.
 - Compare semantics: a control-vs-treated comparison is two separate dyadic recordings run through the classifier, diffing label frequencies. CalMS21 has no real treatment labels, so the demo compares two arbitrary recordings and must say so honestly.
 
-## Model status (flagged Nov 17-18, updated Nov 18)
-The backend calls a placeholder model (`backend/ml_model/`, scikit-learn) when the upload parses as a keypoints JSON. It is trained on synthetic generated data with the old single-animal, 3-keypoint schema and the old `grooming`/`investigation`/`rearing` labels, so it does not match the schema above and is being replaced. It was built to unblock backend/frontend integration, not as a result. The real data/ML work (GitHub issue #1) is now underway: CalMS21 Task 1, four labels, scikit-learn baseline first, GRU only if macro-F1 is poor. Until the backend and frontend migrate, the placeholder and the new schema are intentionally out of sync; the migration lands as part of the same PR series (preprocess -> model -> backend/tests -> frontend labels). A raw video upload still falls back to the original hardcoded mock, since there's no pose-extraction step from video to keypoints yet. See `ml/README.md` Status section for exactly what replacing it involves.
+## Model status (updated Nov 18, migration to the real model)
+The backend serves a real model trained on CalMS21 Task 1: a class-balanced scikit-learn `HistGradientBoostingClassifier` over 210 keypoint-only per-frame features, with 1-second probability smoothing (code in `ml/`, copied to `backend/ml_model/`). Test-split macro-F1 is **0.886** (5-fold CV on train: 0.846 +- 0.014); `attack` is the weakest class (F1 0.82 test / 0.74 CV). See `ml/README.md` and `ml/metrics.json` for the full table, controls and caveats. The GRU/LSTM originally planned was not needed.
+
+`backend/ml_model/` is a hand-maintained byte-for-byte copy of `ml/{features,model,preprocess,inference}.py` and `ml/model.joblib` (Vercel builds `backend/` independently, so it can't read `../ml/` at runtime). `backend/tests/test_ml_sync.py` fails CI if they drift.
+
+Upload handling (`backend/main.py`):
+- Valid keypoints JSON -> real inference.
+- JSON with a `frames` key that doesn't match the schema (including the retired single-animal format) -> **422** with the reason. Never a fabricated result.
+- `frame_rate` outside 1-500 -> 422. Any valid rate is resampled to 30 Hz internally.
+- `/api/compare` needs both files to be the same kind (both keypoints, or both video).
+- Anything that isn't JSON (a raw video) still gets a **hardcoded stopgap result** with made-up numbers, because there is still no pose-extraction step from video to keypoints. It uses the real four labels so the UI renders, but it is NOT a prediction. Replacing it with a 4xx error is a one-line change in `main.py` if we'd rather not show fake output in the demo.

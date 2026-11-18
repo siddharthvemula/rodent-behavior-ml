@@ -15,4 +15,9 @@ All routes are under `/api` (see `../vercel.json`, which routes `/api/*` here an
 - `GET /api/jobs/{job_id}` - job status and result once ready.
 - `GET /api/health` - liveness check.
 
-Model inference is currently mocked (see `_mock_predict_result` / `_mock_compare_result` in `main.py`) so frontend and ML work aren't blocked on each other. Swap those for real calls into `/ml` once the model is ready, keep the response shape identical.
+## Model
+`ml_model/` holds the CalMS21-trained classifier (labels `attack`, `investigation`, `mount`, `other`). It is a copy of the matching files in `../ml/`; `tests/test_ml_sync.py` fails if they drift. To update it after retraining in `ml/`:
+```
+cp ml/{features,model,preprocess,inference}.py ml/model.joblib backend/ml_model/
+```
+Uploads must be keypoints JSON in the schema in `../ARCHITECTURE.md` ("Data schema"); malformed ones get a 422. Raw video can't be classified yet (no pose extraction) and gets a hardcoded stopgap result, see `ARCHITECTURE.md`. To make real demo clips from CalMS21 locally: `python ml/export_clip.py --help`.

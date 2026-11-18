@@ -40,6 +40,11 @@ BEHAVIOR_LABELS = ["attack", "investigation", "mount", "other"]
 FRAME_RATE = 30.0
 IMAGE_WIDTH, IMAGE_HEIGHT = 1024, 570
 
+# Accepted range for an uploaded recording's frame_rate. Inference resamples
+# to 30 Hz, so an absurd rate (e.g. 0.001) would otherwise allocate millions
+# of frames from a tiny upload.
+MIN_UPLOAD_FRAME_RATE, MAX_UPLOAD_FRAME_RATE = 1.0, 500.0
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_RAW_DIR = REPO_ROOT / "data" / "raw" / "calms21"
 DEFAULT_PROCESSED_DIR = REPO_ROOT / "data" / "processed"
@@ -75,8 +80,10 @@ def parse_keypoints_json(raw: bytes) -> Tuple[np.ndarray, float]:
         frame_rate = float(data.get("frame_rate", FRAME_RATE))
     except (TypeError, ValueError) as exc:
         raise KeypointsFormatError("'frame_rate' must be a number") from exc
-    if not np.isfinite(frame_rate) or frame_rate <= 0:
-        raise KeypointsFormatError("'frame_rate' must be a positive number")
+    if not np.isfinite(frame_rate) or not (MIN_UPLOAD_FRAME_RATE <= frame_rate <= MAX_UPLOAD_FRAME_RATE):
+        raise KeypointsFormatError(
+            f"'frame_rate' must be between {MIN_UPLOAD_FRAME_RATE:g} and {MAX_UPLOAD_FRAME_RATE:g}"
+        )
 
     frames = data["frames"]
     if not isinstance(frames, list) or len(frames) == 0:

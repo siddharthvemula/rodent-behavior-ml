@@ -2,8 +2,8 @@
   "job_id": "mock-compare-job",
   "status": "done",
   "result": {
-    "control": { "grooming": 0.40, "investigation": 0.35, "rearing": 0.25 },
-    "treated": { "grooming": 0.12, "investigation": 0.48, "rearing": 0.40 },
-    "difference": { "grooming": -0.28, "investigation": 0.13, "rearing": 0.15 }
+    "control": { "attack": 0.05, "investigation": 0.35, "mount": 0.10, "other": 0.50 },
+    "treated": { "attack": 0.20, "investigation": 0.30, "mount": 0.05, "other": 0.45 },
+    "difference": { "attack": 0.15, "investigation": -0.05, "mount": -0.05, "other": -0.05 }
   }
 }

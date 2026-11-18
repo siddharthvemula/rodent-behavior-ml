@@ -142,6 +142,9 @@ def test_upload_frame_rate_defaults_to_30():
         lambda d: d["frames"][0].pop("mice"),
         lambda d: d.update(frame_rate="fast"),
         lambda d: d.update(frame_rate=0),
+        lambda d: d.update(frame_rate=0.001),   # would resample to millions of frames
+        lambda d: d.update(frame_rate=1e9),
+        lambda d: d.update(frame_rate=-30),
         lambda d: d["frames"].__setitem__(0, 5),
     ],
 )
