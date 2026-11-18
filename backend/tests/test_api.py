@@ -45,3 +45,33 @@ def test_compare_shape():
 def test_job_not_found():
     resp = client.get("/api/jobs/does-not-exist")
     assert resp.status_code == 404
+
+
+def test_predict_rejects_empty_file():
+    resp = client.post(
+        "/api/predict",
+        files={"file": ("test.mp4", b"", "video/mp4")},
+    )
+    assert resp.status_code == 400
+
+
+def test_predict_rejects_oversized_file():
+    from main import MAX_UPLOAD_BYTES
+
+    oversized = b"0" * (MAX_UPLOAD_BYTES + 1)
+    resp = client.post(
+        "/api/predict",
+        files={"file": ("big.mp4", oversized, "video/mp4")},
+    )
+    assert resp.status_code == 413
+
+
+def test_compare_rejects_empty_file():
+    resp = client.post(
+        "/api/compare",
+        files={
+            "control": ("c.mp4", b"", "video/mp4"),
+            "treated": ("t.mp4", b"fake-bytes", "video/mp4"),
+        },
+    )
+    assert resp.status_code == 400

@@ -24,6 +24,9 @@ ARCHITECTURE.md
 - `GET /api/jobs/{job_id}` — poll until `status` is `done` or `failed`.
 - Inference runs as a background job, not inline in the request (Vercel functions time out on long-running work).
 
+## Known limit: upload size (flagged Nov 17)
+Vercel Functions cap every request body at 4.5MB, with no way to raise it, this applies to `/api/predict` and `/api/compare` since they're Vercel Functions. The backend enforces a 4MB per-file limit (`MAX_UPLOAD_BYTES` in `backend/main.py`) and returns a clear 413 instead of a cryptic platform error. A pre-extracted keypoints file should comfortably fit; a raw video clip for the demo needs to be short/low-res enough to stay under this, or trimmed first. A `rodent-behavior-ml-blob` Vercel Blob store already exists for a proper fix (direct-to-Blob client uploads bypassing this limit entirely), but that needs a small token-minting endpoint and isn't required for Nov 28. Stretch goal if time allows, don't block on it.
+
 ## Data schema
 - Input: pose keypoints per frame (from the dataset's existing tracking, not re-derived).
 - Output: timestamped behavior labels, confidence scores.

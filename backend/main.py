@@ -36,6 +36,31 @@ api = APIRouter(prefix="/api")
 # a server restart or run on more than one instance.
 jobs: Dict[str, dict] = {}
 
+# Vercel Functions hard-cap every request body at 4.5MB with no way to raise
+# it (confirmed against Vercel's own docs, Nov 17). We stay under that with
+# headroom for multipart overhead. A real video upload can easily exceed
+# this; pre-extracted keypoint files should not. Interim limit while this
+# deploys as a Vercel Function: a real fix (direct-to-Blob client uploads,
+# bypassing this function entirely) is a stretch goal, not required for
+# Nov 28, see ARCHITECTURE.md.
+MAX_UPLOAD_BYTES = 4 * 1024 * 1024  # 4 MiB
+
+
+async def _read_and_validate(file: UploadFile, field_name: str) -> bytes:
+    content = await file.read()
+    if len(content) == 0:
+        raise HTTPException(status_code=400, detail=f"'{field_name}' is empty")
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=(
+                f"'{field_name}' is {len(content)} bytes, over the "
+                f"{MAX_UPLOAD_BYTES} byte limit for this deployment. "
+                "Trim the clip or use a pre-extracted keypoints file instead."
+            ),
+        )
+    return content
+
 
 class BehaviorSegment(BaseModel):
     start_time: float
@@ -85,6 +110,7 @@ def _mock_compare_result() -> dict:
 
 @api.post("/predict", response_model=JobStatus)
 async def predict(file: UploadFile = File(...)):
+    await _read_and_validate(file, "file")
     job_id = _new_job()
     # Real version: enqueue a background task / worker that runs the /ml
     # model on `file` and writes the result into jobs[job_id] when done.
@@ -95,6 +121,8 @@ async def predict(file: UploadFile = File(...)):
 
 @api.post("/compare", response_model=JobStatus)
 async def compare(control: UploadFile = File(...), treated: UploadFile = File(...)):
+    await _read_and_validate(control, "control")
+    await _read_and_validate(treated, "treated")
     job_id = _new_job()
     jobs[job_id]["status"] = "done"
     jobs[job_id]["result"] = _mock_compare_result()
