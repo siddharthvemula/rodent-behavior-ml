@@ -1,0 +1,149 @@
+.pharm {
+  --dose-0: #86b6ef;
+  --dose-1: #3987e5;
+  --dose-2: #1c5cab;
+  --dose-3: #0d366b;
+  --pharm-ink: var(--text);
+  --pharm-surface: var(--surface);
+  display: grid;
+  gap: 20px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .pharm {
+    --dose-0: #184f95;
+    --dose-1: #2a78d6;
+    --dose-2: #6da7ec;
+    --dose-3: #b7d3f6;
+  }
+}
+
+.banner--real {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 0.9rem;
+}
+
+.pharm-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 12px 0;
+  font-size: 0.9rem;
+}
+
+.pharm-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pharm-legend__swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.pharm-grid-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.pharm-chart {
+  margin: 0;
+}
+
+.pharm-chart__title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.pharm-chart__plot {
+  position: relative;
+}
+
+.pharm-chart svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.pharm-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.pharm-axis {
+  fill: var(--text-muted);
+  font-size: 15px;
+}
+
+.pharm-axis--muted {
+  opacity: 0.8;
+}
+
+.pharm-dot {
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.pharm-mean,
+.pharm-median {
+  stroke: var(--text);
+  stroke-width: 2;
+}
+
+.pharm-median {
+  stroke-dasharray: 4 3;
+  opacity: 0.7;
+}
+
+.pharm-chart circle:focus-visible {
+  outline: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.pharm-tip {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 12px));
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 0.78rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.pharm-note,
+.pharm-attribution {
+  font-size: 0.85rem;
+}
+
+.pharm-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  font-size: 0.85rem;
+}
+
+.pharm-table th,
+.pharm-table td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
