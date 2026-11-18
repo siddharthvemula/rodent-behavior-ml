@@ -122,6 +122,21 @@ def to_json_dict(keypoints: np.ndarray, frame_rate: float = FRAME_RATE) -> dict:
     return {"frame_rate": float(frame_rate), "frames": frames}
 
 
+def resample_keypoints(keypoints: np.ndarray, frame_rate: float, target_rate: float = FRAME_RATE) -> np.ndarray:
+    """Linearly resample (T, 2, 7, 2) keypoints recorded at `frame_rate` to
+    `target_rate`, so frame-based features always see 30 Hz motion. Returns
+    the input unchanged when the rates already match (within 1%)."""
+    _check_canonical(keypoints)
+    if abs(frame_rate - target_rate) <= 0.01 * target_rate or len(keypoints) < 2:
+        return keypoints
+    duration = (len(keypoints) - 1) / frame_rate
+    t_out = np.arange(int(np.floor(duration * target_rate)) + 1) / target_rate
+    t_in = np.arange(len(keypoints)) / frame_rate
+    flat = keypoints.reshape(len(keypoints), -1)
+    out = np.stack([np.interp(t_out, t_in, flat[:, c]) for c in range(flat.shape[1])], axis=1)
+    return out.reshape(len(t_out), *keypoints.shape[1:]).astype(np.float32)
+
+
 def _check_canonical(keypoints: np.ndarray) -> None:
     if keypoints.ndim != 4 or keypoints.shape[1:] != (N_MICE, N_KEYPOINTS, 2):
         raise KeypointsFormatError(

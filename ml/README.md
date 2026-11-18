@@ -7,14 +7,35 @@ Dataset loading, preprocessing, training, and the trained model. This is where t
 ## Status (Nov 18)
 Real-data work is underway (issue #1): **CalMS21 Task 1 only**, four labels (`attack`, `investigation`, `mount`, `other`), dyadic two-mouse schema (see `../ARCHITECTURE.md` "Data schema"). Plan: scikit-learn baseline on engineered dyad features first, a GRU/1D-CNN only if its macro-F1 is poor. Training runs on Colab/Kaggle (no torch/GPU locally).
 
-Done:
-- `download_data.py`: fetches `task1_classic_classification.zip` (457,357,950 bytes), verifies size and zip CRCs, extracts only `calms21_task1_{train,test}.json` into `data/raw/calms21/`.
-- `preprocess.py`: new schema, upload parser (`parse_keypoints_json`), CalMS21 loader (`load_calms21`), by-recording train/val split, and a compact `.npz` cache (`python ml/preprocess.py` -> `data/processed/`, ~94 MB for both splits, easy to upload to Colab).
-- `tests/`: loader + upload-contract tests (run in CI).
+Done (baseline, `ml/baseline-model` PR):
+- `download_data.py`, `preprocess.py`: see below. 
+- `features.py`: 210 per-frame features from keypoints only (no tracker scores, since uploads don't have them): per-mouse body shape/speed/turning, dyad distances/facing/approach, each with rolling mean/std at 0.17 s, 0.5 s and 1.5 s. Rotation- and translation-invariant (tested); no absolute arena position.
+- `model.py`: `HistGradientBoostingClassifier` (class-balanced) + probability smoothing (31 frames ~1 s). The artifact (`model.joblib`, 1.6 MB) is loaded only by the exact scikit-learn version that trained it (1.7.1, pinned in `requirements.txt`; `load_model` refuses a mismatch).
+- `train.py`: grouped CV on train, 3-seed fit, one evaluation on the official test split, controls, writes `model.joblib` and `metrics.json`. Retrain with a Python 3.10+ venv matching `requirements.txt`.
+- `inference.py`: `predict_behaviors(keypoints, frame_rate)` and `compare_behaviors(control, treated, ...)`, same output shapes the backend already expects. Resamples any frame rate to 30 Hz; ~0.05 s for a 3,000-frame upload.
+- `tests/` (55 tests, run in CI).
 
-Not done yet (step 3+): feature extraction, `model.py`, `train.py`, `inference.py`.
+## Baseline results (`metrics.json`, CalMS21 Task 1)
+| | macro-F1 | attack | investigation | mount | other |
+| --- | --- | --- | --- | --- | --- |
+| 5-fold grouped CV on train (pooled) | 0.852 (per fold 0.846 +- 0.014) | 0.737 | 0.858 | 0.872 | 0.941 |
+| **Test** (official split, 3 seeds) | **0.886** | 0.819 | 0.850 | 0.923 | 0.952 |
+| control: always predict `other` | 0.187 | | | | |
+| control: model trained on shuffled labels | 0.238 | | | | |
 
-**Currently broken on purpose:** `model.py`, `train.py` and `inference.py` here are still the old synthetic placeholder (single animal, 3 keypoints, `grooming`/`rearing` labels) and `train.py`/`inference.py` no longer import (they use the removed `Frame`/`extract_features`). They get rewritten next. The deployed backend is unaffected: it has its own copy in `backend/ml_model/`, which keeps working until the real model replaces it.
+Mean F1 over the three behaviors excluding `other`: 0.864 on test. Frame-level F1, not segment-level.
+
+Caveats, read these before quoting a number:
+- Test (0.886) is higher than CV (0.846), probably because test has a different class mix (mount is 12% of test vs 5.6% of train and it is the easiest class). Don't assume test is "better"; quote both.
+- The 3 test seeds only vary which random half of the frames is used for training, so their spread (~0.001) understates real variance. The CV fold spread (+- 0.014) is the better error bar, and 19 test recordings is a small sample.
+- Hyperparameters (three configs, all within 0.003) and the smoothing window were chosen on train-only CV. Smoothing helped in CV (+0.007) but not on test (0.886 vs 0.890 unsmoothed), so it is a wash.
+- `attack` is the weakest class (CV F1 0.74), confused mostly with `investigation`. This is the obvious place a sequence model could help.
+- Per-recording behavior frequencies (what the compare view diffs) track ground truth closely on test: Pearson r 0.98-0.99, mean abs error 1-3 points of time fraction.
+- CalMS21 has no real treatment labels; the compare view diffs two arbitrary recordings.
+
+Per the plan, a GRU/1D-CNN is only warranted if this macro-F1 were bad. It is not, so the baseline ships.
+
+Not done yet: migrate `backend/ml_model/`, backend tests, mock data and the frontend to this model (the backend still serves the old placeholder; see "Replacing the placeholder" below).
 
 ### Quick start
 ```
@@ -31,9 +52,9 @@ pytest ml/tests
 
 30 Hz, 1024x570 px, 7 keypoints per mouse, mouse 0 = resident, mouse 1 = intruder. Report **macro-F1 and per-class F1**, never plain accuracy (`other` is ~60%). Note the train/test class balance differs (mount 5.6% -> 12.2%, attack 2.8% -> 4.8%), so validation scores from a split of train will not exactly predict test. Train/test are split by animal identity, so always split by recording, never by frame.
 
-When the real model is ready, replacing the placeholder means:
+### Replacing the placeholder in the backend (next PR)
 1. Keep `predict_behaviors` / `compare_behaviors` signatures in `inference.py` (the backend calls them).
-2. Copy `model.py`, `preprocess.py`, `inference.py` and the model artifact into `backend/ml_model/`, overwriting the placeholder copies. See `backend/ml_model/inference.py`'s docstring for why that duplication exists (Vercel Services builds `backend/` independently from `ml/`).
+2. Copy `features.py`, `model.py`, `preprocess.py`, `inference.py` and `model.joblib` into `backend/ml_model/`, overwriting the placeholder copies. See `backend/ml_model/inference.py`'s docstring for why that duplication exists (Vercel Services builds `backend/` independently from `ml/`).
 
 ## Dataset
 [CalMS21](https://data.caltech.edu/records/s0vdx-0k302) Task 1 (classic classification). Cite the CalMS21 paper (Sun et al., 2021, "The Multi-Agent Behavior Dataset: Mouse Dyadic Social Interactions"). The Caltech record lists it as CC BY 4.0; we stay non-commercial regardless. Never commit the raw data (`/data/raw/` and `/data/processed/` are gitignored). MABe22 was dropped, see `../ARCHITECTURE.md`.
@@ -43,9 +64,11 @@ When the real model is ready, replacing the placeholder means:
 /ml
   download_data.py   # fetches CalMS21 Task 1 into gitignored data/raw/calms21/
   preprocess.py      # schema, upload parser, CalMS21 loader, splits, .npz cache
-  model.py           # (placeholder, to be replaced)
-  train.py           # (placeholder, to be replaced)
-  inference.py       # (placeholder, to be replaced)
+  features.py        # per-frame features from keypoints
+  model.py           # classifier, smoothing, (de)serialization
+  train.py           # CV + fit + test evaluation, writes model.joblib/metrics.json
+  inference.py       # predict_behaviors / compare_behaviors (what the backend calls)
+  model.joblib, metrics.json
   tests/             # pytest, run in CI
 ```
 
