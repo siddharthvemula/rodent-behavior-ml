@@ -4,7 +4,7 @@ Owner: mehulvar
 
 React app (use Vite). Two views are required per the root `PROJECT_PLAN.md`:
 1. Upload or select a video, see the predicted behavior timeline.
-2. Select a control video and a treated video, see a side-by-side behavior-frequency comparison.
+2. Select two recordings (A and B), see a side-by-side behavior-frequency comparison. This compares behavior between recordings and does not claim any treatment effect.
 
 ## Scaffold
 ```

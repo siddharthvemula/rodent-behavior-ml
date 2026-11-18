@@ -25,8 +25,8 @@ describe('App', () => {
     const input = screen.getByLabelText<HTMLInputElement>(/keypoints file/i)
     await userEvent.upload(input, file)
 
-    await userEvent.click(screen.getByRole('tab', { name: /control vs treated/i }))
-    expect(screen.getByRole('heading', { name: /control vs treated/i })).toBeVisible()
+    await userEvent.click(screen.getByRole('tab', { name: /compare recordings/i }))
+    expect(screen.getByRole('heading', { name: /compare two recordings/i })).toBeVisible()
     expect(screen.queryByRole('heading', { name: /per-video behavior timeline/i })).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('tab', { name: /timeline/i }))

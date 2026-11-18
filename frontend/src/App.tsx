@@ -9,7 +9,7 @@ import './summary.css'
 
 const TABS = [
   { id: 'timeline', label: 'Timeline' },
-  { id: 'compare', label: 'Control vs treated' },
+  { id: 'compare', label: 'Compare recordings' },
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
@@ -33,7 +33,7 @@ function App({ mockMode = apiConfig.useMock }: AppProps) {
             </svg>
           </span>
           <div>
-            <h1>Rodent Behavior Diagnosis</h1>
+            <h1>Rodent Behavior Analysis</h1>
             <p className="muted">Automatic behavior analysis from pose tracking</p>
           </div>
         </div>

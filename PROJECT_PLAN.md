@@ -1,13 +1,13 @@
-# Rodent Behavior ML Diagnosis — Project Plan
+# Rodent Behavior Analysis — Project Plan
 
 Deadline: Nov 28, 2026. 4-person team.
 
 ## Locked decisions (do not redebate these)
 - Context: hackathon submission and/or scored competition. Demo polish and a clearly reported metric matter.
 - Scope: mice, social/dyadic behavior. Built on CalMS21 Task 1 only (CC BY 4.0 per its CaltechDATA record; we stay non-commercial regardless, cite the paper, never commit the raw dataset to this repo). MABe22 was dropped, see ARCHITECTURE.md for why.
-- Core task (must ship): classify known behaviors (supervised), then build the control-vs-treated comparison by running the classifier on each video separately and diffing behavior frequencies.
+- Core task (must ship): classify known behaviors (supervised), then build a two-recording comparison by running the classifier on each video separately and diffing behavior frequencies. We make no diagnostic or drug-effect claims: without real treatment-specific data, the compare demo uses two real CalMS21 recordings as a stand-in for control/treatment groups.
 - Stretch goal (only after the core works end to end): shift/anomaly detection against a learned baseline.
-- Product: both a per-video behavior timeline and a control-vs-treated comparison view.
+- Product: both a per-video behavior timeline and a two-recording comparison view.
 
 ## Team roles (3 people)
 - Data/ML: krishtotala105

@@ -37,18 +37,18 @@ describe('CompareSummary', () => {
     render(<CompareSummary result={compare} />)
     const rows = screen.getAllByRole('listitem').filter((li) => li.classList.contains('pair'))
     expect(rows.map((r) => r.getAttribute('aria-label'))).toEqual([
-      'Attack: control 0%, treated 44%, 44 percentage points higher in treated',
-      'Investigation: control 61%, treated 12%, 49 percentage points lower in treated. Biggest change',
-      'Mounting: control 18%, treated 0%, 18 percentage points lower in treated',
-      'Other: control 21%, treated 43%, 22 percentage points higher in treated',
+      'Attack: recording A 0%, recording B 44%, 44 percentage points higher in recording B',
+      'Investigation: recording A 61%, recording B 12%, 49 percentage points lower in recording B. Biggest change',
+      'Mounting: recording A 18%, recording B 0%, 18 percentage points lower in recording B',
+      'Other: recording A 21%, recording B 43%, 22 percentage points higher in recording B',
     ])
   })
 
   it('has a legend and a neutral difference for each behavior', () => {
     render(<CompareSummary result={compare} />)
     const legend = screen.getByRole('list', { name: 'Legend' })
-    expect(within(legend).getByText('Control')).toBeInTheDocument()
-    expect(within(legend).getByText('Treated')).toBeInTheDocument()
+    expect(within(legend).getByText('Recording A')).toBeInTheDocument()
+    expect(within(legend).getByText('Recording B')).toBeInTheDocument()
     expect(screen.getByText('+44 pts')).toBeInTheDocument()
     expect(screen.getByText('−49 pts')).toBeInTheDocument()
   })
@@ -184,7 +184,7 @@ describe('standout, donuts and linked hover', () => {
 
   it('shows the headline number with a spoken equivalent', () => {
     render(<CompareSummary result={compare} />)
-    expect(screen.getByText('49 percentage points lower in the treated recording')).toBeInTheDocument()
+    expect(screen.getByText('49 percentage points lower in recording B')).toBeInTheDocument()
   })
 
   it('has no hero number when nothing meaningful changed', () => {
@@ -196,8 +196,8 @@ describe('standout, donuts and linked hover', () => {
 
   it('draws a donut per recording with every value in its accessible name', () => {
     render(<CompareSummary result={compare} />)
-    expect(screen.getByRole('img', { name: 'Control: Investigation 61%, Mounting 18%, Other 21%' })).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: 'Treated: Attack 44%, Investigation 12%, Other 43%' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Recording A: Investigation 61%, Mounting 18%, Other 21%' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Recording B: Attack 44%, Investigation 12%, Other 43%' })).toBeInTheDocument()
   })
 
   it('centers each donut on the standout behavior until something is hovered', async () => {
