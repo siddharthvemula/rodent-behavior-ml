@@ -22,18 +22,29 @@ export interface CompareRow {
 // ARCHITECTURE.md "Data schema"), so each known label has ONE color
 // everywhere. Colors must not depend on which labels happen to appear in a
 // given clip, or the same behavior would change color between recordings and
-// between the timeline and comparison views. `other` is the ~60% background
-// class, so it is a quiet neutral rather than a vivid color.
+// between the Summary and Detail views. They are CSS variables (defined for
+// light and dark in index.css, validated with the dataviz palette checks) so
+// the theme can swap them. `other` is the ~60% background class, so it is a
+// quiet neutral rather than a vivid color.
 const KNOWN_BEHAVIOR_COLORS: Readonly<Record<string, string>> = {
-  attack: '#ef4444',
-  investigation: '#3b82f6',
-  mount: '#8b5cf6',
-  other: '#9ca3af',
+  attack: 'var(--beh-attack)',
+  investigation: 'var(--beh-investigation)',
+  mount: 'var(--beh-mount)',
+  other: 'var(--beh-other)',
 }
 
 // Fallback for any label outside the fixed vocabulary (e.g. a future backend
 // change); distinct from the four above.
-const EXTRA_PALETTE = ['#f59e0b', '#10b981', '#ec4899', '#14b8a6', '#84cc16'] as const
+const EXTRA_PALETTE = [
+  'var(--beh-extra-1)',
+  'var(--beh-extra-2)',
+  'var(--beh-extra-3)',
+  'var(--beh-extra-4)',
+  'var(--beh-extra-5)',
+] as const
+
+/** The fixed vocabulary in display order (attack first, background class last). */
+export const KNOWN_BEHAVIORS = ['attack', 'investigation', 'mount', 'other'] as const
 
 /**
  * Maps each distinct label to a color. Known labels always get their fixed

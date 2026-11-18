@@ -59,4 +59,20 @@ describe('TimelineView', () => {
 
     expect(await screen.findByText(/no behaviors detected/i)).toBeInTheDocument()
   })
+
+  it('switches between Summary and Detail without calling the backend again', async () => {
+    const predict = vi.fn<ApiClient['predict']>().mockResolvedValue(predictMock.result)
+    const { rerender } = render(<TimelineView api={fakeApi(predict)} mode="detail" />)
+    await userEvent.upload(screen.getByLabelText(/keypoints file/i), video)
+    await userEvent.click(screen.getByRole('button', { name: /predict behaviors/i }))
+    expect(await screen.findByRole('table', { name: /predicted segments/i })).toBeInTheDocument()
+
+    rerender(<TimelineView api={fakeApi(predict)} mode="summary" />)
+    expect(screen.getByRole('region', { name: /summary of this recording/i })).toBeInTheDocument()
+    expect(screen.queryByRole('table', { name: /predicted segments/i })).not.toBeInTheDocument()
+
+    rerender(<TimelineView api={fakeApi(predict)} mode="detail" />)
+    expect(screen.getByRole('table', { name: /predicted segments/i })).toBeInTheDocument()
+    expect(predict).toHaveBeenCalledTimes(1)
+  })
 })

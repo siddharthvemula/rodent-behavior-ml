@@ -2,15 +2,20 @@ import { useState, type FormEvent } from 'react'
 import { api as defaultApi, type ApiClient } from '../api/client'
 import type { BehaviorSegment } from '../api/types'
 import { BehaviorTimeline } from '../components/BehaviorTimeline'
+import { TimelineSummary } from '../components/TimelineSummary'
 import { FilePicker } from '../components/FilePicker'
 import { StatusMessage } from '../components/StatusMessage'
 import { useAsyncTask } from '../lib/useAsyncTask'
+import type { ViewMode } from '../lib/useViewMode'
 
 interface TimelineViewProps {
   readonly api?: Pick<ApiClient, 'predict'>
+  /** Which presentation to show for the result; the data is the same either way. */
+  readonly mode?: ViewMode
+  readonly onShowDetail?: () => void
 }
 
-export function TimelineView({ api = defaultApi }: TimelineViewProps) {
+export function TimelineView({ api = defaultApi, mode = 'detail', onShowDetail }: TimelineViewProps) {
   const [file, setFile] = useState<File | null>(null)
   const { state, run, reset } = useAsyncTask<readonly BehaviorSegment[]>()
   const isLoading = state.status === 'loading'
@@ -46,8 +51,14 @@ export function TimelineView({ api = defaultApi }: TimelineViewProps) {
 
       <StatusMessage state={state} loadingText="Running behavior classifier…" />
       {state.status === 'success' && (
-        <div className="card">
-          <BehaviorTimeline segments={state.data} />
+        <div key={mode} className="mode-enter">
+          {mode === 'summary' ? (
+            <TimelineSummary segments={state.data} onShowDetail={onShowDetail} />
+          ) : (
+            <div className="card">
+              <BehaviorTimeline segments={state.data} />
+            </div>
+          )}
         </div>
       )}
     </div>

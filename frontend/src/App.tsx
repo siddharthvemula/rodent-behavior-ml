@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import { apiConfig } from './api/client'
+import { ViewToggle } from './components/ViewToggle'
+import { useViewMode } from './lib/useViewMode'
 import { CompareView } from './views/CompareView'
 import { TimelineView } from './views/TimelineView'
 import './App.css'
+import './summary.css'
 
 const TABS = [
   { id: 'timeline', label: 'Timeline' },
@@ -18,11 +21,23 @@ interface AppProps {
 
 function App({ mockMode = apiConfig.useMock }: AppProps) {
   const [activeTab, setActiveTab] = useState<TabId>('timeline')
+  const [viewMode, setViewMode] = useViewMode('summary')
 
   return (
     <div className="app">
       <header className="app__header">
-        <h1>Rodent Behavior Diagnosis</h1>
+        <div className="app__brand">
+          <span className="app__logo" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 12 7 12 10 5 14 19 17 12 21 12" />
+            </svg>
+          </span>
+          <div>
+            <h1>Rodent Behavior Diagnosis</h1>
+            <p className="muted">Automatic behavior analysis from pose tracking</p>
+          </div>
+        </div>
+        <ViewToggle mode={viewMode} onChange={setViewMode} />
       </header>
 
       {mockMode && (
@@ -52,10 +67,10 @@ function App({ mockMode = apiConfig.useMock }: AppProps) {
       {/* Both panels stay mounted so switching tabs keeps each view's files and results. */}
       <main>
         <section id="panel-timeline" role="tabpanel" aria-labelledby="tab-timeline" hidden={activeTab !== 'timeline'}>
-          <TimelineView />
+          <TimelineView mode={viewMode} onShowDetail={() => setViewMode('detail')} />
         </section>
         <section id="panel-compare" role="tabpanel" aria-labelledby="tab-compare" hidden={activeTab !== 'compare'}>
-          <CompareView />
+          <CompareView mode={viewMode} onShowDetail={() => setViewMode('detail')} />
         </section>
       </main>
     </div>
