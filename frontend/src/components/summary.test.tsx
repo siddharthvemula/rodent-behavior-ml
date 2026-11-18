@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { BehaviorSegment, CompareResult } from '../api/types'
@@ -84,13 +84,29 @@ describe('CompareSummary', () => {
 })
 
 describe('TimelineSummary', () => {
+  const tileValue = (label: string) => screen.getByText(label).closest('.tile')!.querySelector('.tile__value')
+
   it('shows a generated headline and exact figures', () => {
     render(<TimelineSummary segments={segments} />)
     expect(screen.getByRole('heading', { level: 2, name: 'Mostly investigating: 60% of this 1 min 40 s recording' })).toBeInTheDocument()
-    expect(screen.getByText('Recording length').nextElementSibling).toHaveTextContent('1 min 40 s')
-    expect(screen.getByText('Behavior segments').nextElementSibling).toHaveTextContent('3')
-    expect(screen.getByText('Average confidence').nextElementSibling).toHaveTextContent('85%')
-    expect(screen.getByText('Longest stretch').nextElementSibling).toHaveTextContent('1 min')
+    expect(tileValue('Recording length')).toHaveTextContent('1 min 40 s')
+    expect(tileValue('Behavior segments')).toHaveTextContent('3')
+    expect(tileValue('Average confidence')).toHaveTextContent('85%')
+    expect(tileValue('Longest stretch')).toHaveTextContent('1 min')
+  })
+
+  it('adds a second sentence about how the lead behavior was spread out, like the comparison view', () => {
+    render(<TimelineSummary segments={segments} />)
+    expect(screen.getByText('Investigating happened in one continuous stretch of 1 min.')).toBeInTheDocument()
+  })
+
+  it('gives every stat tile an icon chip, and the longest-stretch tile its behavior color', () => {
+    const { container } = render(<TimelineSummary segments={segments} />)
+    const tiles = [...container.querySelectorAll<HTMLElement>('.tile')]
+    expect(tiles).toHaveLength(4)
+    for (const tile of tiles) expect(tile.querySelector('.chip svg')).not.toBeNull()
+    expect(tiles[3].style.getPropertyValue('--beh')).toBe(buildColorMap(['investigation']).investigation)
+    expect(tiles[0].style.getPropertyValue('--beh')).toBe('var(--text-muted)') // generic tiles stay neutral
   })
 
   it('lists behaviors by share with exact seconds', () => {
@@ -219,5 +235,70 @@ describe('standout, donuts and linked hover', () => {
   it('the ambient backdrop and hero stat exist only in the Summary, never in Detail', () => {
     const detail = render(<BehaviorTimeline segments={segments} />)
     expect(detail.container.querySelector('.summary, .hero, .hero-stat, .donut')).toBeNull()
+  })
+})
+
+describe('interactive timeline (Summary) vs plain timeline (Detail)', () => {
+  const segmentEls = (c: HTMLElement) => [...c.querySelectorAll<HTMLElement>('.timeline__segment')]
+  const strip = (c: HTMLElement) => c.querySelector<HTMLElement>('.timeline--interactive')!
+
+  /** jsdom has no layout, so give the strip a 1000 px width and move the pointer to a fraction of it. */
+  function pointAt(container: HTMLElement, fraction: number) {
+    const el = strip(container)
+    vi.spyOn(el, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0, right: 1000, bottom: 48, width: 1000, height: 48, x: 0, y: 0, toJSON: () => ({}) })
+    // a MouseEvent named 'pointermove' carries clientX in jsdom (fireEvent.pointerMove does not)
+    fireEvent(el, new MouseEvent('pointermove', { bubbles: true, clientX: fraction * 1000 }))
+  }
+
+  it('shows a readout with time range and confidence for the segment under the pointer, and clears it on leave', () => {
+    const { container } = render(<TimelineSummary segments={segments} />)
+    expect(screen.queryByText(/confident/)).not.toBeInTheDocument()
+    pointAt(container, 0.7) // 60-80 s: the "other" segment
+    expect(screen.getByText(/1:00\.0–1:20\.0/)).toBeInTheDocument()
+    expect(screen.getByText(/50% confident/)).toBeInTheDocument()
+    fireEvent.pointerLeave(strip(container))
+    expect(screen.queryByText(/confident/)).not.toBeInTheDocument()
+  })
+
+  it('highlights the behavior under the pointer everywhere: its segments, its row, and the donut', () => {
+    const { container } = render(<TimelineSummary segments={segments} />)
+    pointAt(container, 0.9) // the mount segment
+    expect(segmentEls(container)[2]).toHaveClass('is-active')
+    expect(segmentEls(container)[0]).toHaveClass('is-dim')
+    expect(container.querySelector('li.pair.is-active')?.getAttribute('aria-label')).toMatch(/^Mounting/)
+    expect(container.querySelector('.donut__center')?.textContent).toBe('20%Mounting')
+  })
+
+  it('can land on a very thin segment that is only a couple of pixels wide', () => {
+    const thin: BehaviorSegment[] = [
+      { start_time: 0, end_time: 59.5, behavior_label: 'investigation', confidence: 0.9 },
+      { start_time: 59.5, end_time: 60, behavior_label: 'mount', confidence: 0.8 }, // 0.5% of the strip = 5 px
+      { start_time: 60, end_time: 100, behavior_label: 'other', confidence: 0.9 },
+    ]
+    const { container } = render(<TimelineSummary segments={thin} />)
+    const readout = () => container.querySelector('.tip--ribbon')?.textContent
+    pointAt(container, 0.592) // 3 px left of the thin segment: its hit zone reaches it
+    expect(readout()).toContain('0:59.5–1:00.0')
+    pointAt(container, 0.5) // well away from it: the wide neighbor, not the thin one
+    expect(readout()).toContain('0:00.0–0:59.5')
+    expect(readout()).not.toContain('1:00.0')
+  })
+
+  it('labels the axis at five points', () => {
+    const { container } = render(<TimelineSummary segments={segments} />)
+    expect([...container.querySelectorAll('.timeline__axis--ticks span')].map((e) => e.textContent)).toEqual([
+      '0:00.0', '0:25.0', '0:50.0', '1:15.0', '1:40.0',
+    ])
+  })
+
+  it('the Detail ribbon stays plain: native tooltips, no hover state, two axis labels', async () => {
+    const { container } = render(<BehaviorTimeline segments={segments} />)
+    const els = segmentEls(container)
+    expect(els[0]).toHaveAttribute('title')
+    fireEvent(container.querySelector('.timeline')!, new MouseEvent('pointermove', { bubbles: true, clientX: 100 }))
+    await userEvent.hover(els[0])
+    expect(container.querySelector('.is-hover, .is-active, .is-dim, .tip')).toBeNull()
+    expect(container.querySelector('.timeline--interactive, .timeline-wrap')).toBeNull()
+    expect(container.querySelectorAll('.timeline__axis span')).toHaveLength(2)
   })
 })

@@ -1,14 +1,16 @@
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useState, type CSSProperties } from 'react'
 import type { BehaviorSegment } from '../api/types'
 import { buildColorMap, formatSeconds, summarizeTimeline } from '../lib/behaviors'
 import { behaviorInfo, capitalize } from '../lib/behaviorInfo'
 import { barDelay, HERO_COUNT_MS, rowDelay } from '../lib/motion'
-import { formatDuration, percent, summarizeRecording } from '../lib/summary'
+import { formatDuration, orderLabels, percent, summarizeRecording } from '../lib/summary'
 import { useCountUp } from '../lib/useCountUp'
-import { AnimatedPercent } from './AnimatedPercent'
-import { BehaviorChip } from './BehaviorIcon'
+import { AnimatedDuration, AnimatedPercent } from './AnimatedPercent'
+import { BehaviorChip, BehaviorIcon } from './BehaviorIcon'
+import { BehaviorKey } from './BehaviorKey'
 import { Donut } from './Donut'
 import { Hero, HeroStat } from './Hero'
+import { StatTile } from './StatTile'
 import { TimelineRibbon } from './TimelineRibbon'
 
 interface TimelineSummaryProps {
@@ -17,16 +19,6 @@ interface TimelineSummaryProps {
 }
 
 const enter = (step: number) => ({ ['--s' as string]: step }) as CSSProperties
-
-function Tile({ label, children, hint, step }: { readonly label: string; readonly children: ReactNode; readonly hint?: string; readonly step: number }) {
-  return (
-    <div className="tile enter" style={enter(step)}>
-      <span className="tile__label">{label}</span>
-      <span className="tile__value">{children}</span>
-      {hint && <span className="tile__hint muted">{hint}</span>}
-    </div>
-  )
-}
 
 function Count({ value }: { readonly value: number }) {
   return <>{Math.round(useCountUp(value, 900, HERO_COUNT_MS))}</>
@@ -46,6 +38,7 @@ export function TimelineSummary({ segments, onShowDetail }: TimelineSummaryProps
   const topInfo = behaviorInfo(top.label)
   const scaleMax = Math.max(0.1, Math.ceil(top.share * 10) / 10)
   const activate = (label: string | null) => () => setActive(label)
+  const keyLabels = orderLabels(totals.map((t) => t.label))
 
   return (
     <section className="summary" aria-label="Summary of this recording" style={{ ['--beh' as string]: colors[top.label] }}>
@@ -55,6 +48,7 @@ export function TimelineSummary({ segments, onShowDetail }: TimelineSummaryProps
         eyebrow="Key finding"
         headline={summary.headline}
         context={summary.context}
+        extra={summary.extra}
         stat={
           <HeroStat
             label="Most common behavior"
@@ -69,16 +63,20 @@ export function TimelineSummary({ segments, onShowDetail }: TimelineSummaryProps
       </Hero>
 
       <div className="tiles">
-        <Tile step={5} label="Recording length">{formatDuration(summary.duration)}</Tile>
-        <Tile step={6} label="Behavior segments"><Count value={summary.segmentCount} /></Tile>
-        <Tile step={7} label="Average confidence"><AnimatedPercent value={summary.meanConfidence} delayMs={HERO_COUNT_MS} /></Tile>
-        <Tile
+        <StatTile step={5} icon="clock" label="Recording length">
+          <AnimatedDuration seconds={summary.duration} delayMs={HERO_COUNT_MS} />
+        </StatTile>
+        <StatTile step={6} icon="layers" label="Behavior segments"><Count value={summary.segmentCount} /></StatTile>
+        <StatTile step={7} icon="gauge" label="Average confidence"><AnimatedPercent value={summary.meanConfidence} delayMs={HERO_COUNT_MS} /></StatTile>
+        <StatTile
           step={8}
+          icon={<BehaviorIcon label={summary.longest.label} size={18} />}
+          color={colors[summary.longest.label]}
           label="Longest stretch"
           hint={`${capitalize(leadInfo.gerund)}, ${formatSeconds(summary.longest.start)}–${formatSeconds(summary.longest.end)}`}
         >
-          {formatDuration(summary.longest.seconds)}
-        </Tile>
+          <AnimatedDuration seconds={summary.longest.seconds} delayMs={HERO_COUNT_MS} />
+        </StatTile>
       </div>
 
       <div className="chart-card enter" style={enter(9)}>
@@ -156,7 +154,8 @@ export function TimelineSummary({ segments, onShowDetail }: TimelineSummaryProps
             <p className="muted small">Each block is one detected segment; fainter blocks are less certain</p>
           </div>
         </header>
-        <TimelineRibbon segments={segments} animate />
+        <TimelineRibbon segments={segments} animate interactive={{ active, onActiveChange: setActive }} />
+        <BehaviorKey labels={keyLabels} colors={colors} active={active} onActiveChange={setActive} />
       </div>
 
       {onShowDetail && (

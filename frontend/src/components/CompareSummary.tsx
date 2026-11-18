@@ -6,6 +6,7 @@ import { barDelay, HERO_COUNT_MS, rowDelay } from '../lib/motion'
 import { orderLabels, percent, summarizeComparison } from '../lib/summary'
 import { AnimatedPercent, AnimatedPoints } from './AnimatedPercent'
 import { BehaviorChip } from './BehaviorIcon'
+import { BehaviorKey } from './BehaviorKey'
 import { Donut } from './Donut'
 import { Hero, HeroStat } from './Hero'
 
@@ -174,19 +175,7 @@ export function CompareSummary({ result, onShowDetail }: CompareSummaryProps) {
               <Donut name="Control" slices={slices('control')} defaultLabel={defaultLabel} active={active} onActiveChange={setActive} delayMs={rowDelay(0) + 150} />
               <Donut name="Treated" slices={slices('treated')} defaultLabel={defaultLabel} active={active} onActiveChange={setActive} delayMs={rowDelay(0) + 300} />
             </div>
-            <ul className="donut-key" aria-hidden="true">
-              {rows.map((r) => (
-                <li
-                  key={r.label}
-                  className={active === r.label ? 'is-active' : ''}
-                  onPointerEnter={activate(r.label)}
-                  onPointerLeave={activate(null)}
-                >
-                  <span className="donut-key__dot" style={{ background: colors[r.label] }} />
-                  {behaviorInfo(r.label).title}
-                </li>
-              ))}
-            </ul>
+            <BehaviorKey labels={labels} colors={colors} active={active} onActiveChange={setActive} />
           </aside>
         </div>
 

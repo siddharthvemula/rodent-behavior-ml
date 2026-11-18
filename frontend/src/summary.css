@@ -149,6 +149,12 @@
   border-radius: 12px;
 }
 
+.chip--sm {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+}
+
 .chip--lg {
   width: 60px;
   height: 60px;
@@ -274,7 +280,7 @@
 }
 
 .hero-stat__caption {
-  max-width: 24ch;
+  max-width: 32ch;
   color: var(--text-muted);
   font-size: 0.92rem;
 }
@@ -316,6 +322,17 @@
   transform: translateY(-3px);
   border-color: color-mix(in srgb, var(--beh) 40%, var(--border));
   box-shadow: var(--shadow-card), 0 12px 28px color-mix(in srgb, var(--beh) 13%, transparent);
+}
+
+.tile__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.tile:hover .chip {
+  transform: scale(1.08);
 }
 
 .tile__label {
@@ -597,7 +614,7 @@
 /* the colored time strip sweeps in left to right in the Summary view */
 .timeline--animate {
   clip-path: inset(0 100% 0 0 round 6px);
-  animation: wipe 1.2s 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  animation: wipe 1.2s 1.05s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
 @keyframes wipe {
@@ -792,6 +809,78 @@
   transform: scale(1.07);
 }
 
+/* ---------- interactive timeline (Summary only) ---------- */
+.timeline-wrap {
+  position: relative;
+  margin-top: 30px; /* headroom for the hover readout above the strip */
+}
+
+/* taller, rounded blocks separated by a 2px surface gap; the strip no longer clips so a
+   hovered block can lift and glow */
+.timeline--interactive {
+  height: 48px;
+  overflow: visible;
+  background: color-mix(in srgb, var(--text) 6%, var(--surface));
+  border-radius: 8px;
+}
+
+.timeline--interactive.timeline--animate {
+  clip-path: inset(-24px 100% -24px -8px round 8px);
+  animation-name: wipe-open;
+}
+
+@keyframes wipe-open {
+  to {
+    clip-path: inset(-24px -8px -24px -8px round 8px);
+  }
+}
+
+.timeline--interactive .timeline__segment {
+  border: none;
+  border-right: 2px solid var(--surface);
+  border-radius: 5px;
+  opacity: var(--c, 1);
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s ease, filter 0.2s ease, box-shadow 0.25s ease;
+}
+
+.timeline--interactive .timeline__segment.is-hover,
+.timeline--interactive .timeline__segment.is-active {
+  z-index: 2;
+  opacity: 1;
+  transform: scaleY(1.16);
+  filter: brightness(1.08) saturate(1.12);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--beh) 55%, transparent);
+}
+
+.timeline--interactive .timeline__segment.is-dim {
+  opacity: calc(var(--c, 1) * 0.3);
+}
+
+.tip--ribbon {
+  top: -10px;
+  bottom: auto;
+  transform: translate(-50%, -100%);
+  background: var(--text);
+}
+
+.tip--on {
+  opacity: 1;
+}
+
+.timeline__axis--ticks {
+  margin-top: 10px;
+}
+
+.timeline-wrap + .donut-key,
+.chart-card .donut-key {
+  margin-top: 4px;
+}
+
+.chart-card .timeline-wrap + .donut-key {
+  margin-top: 14px;
+  justify-content: flex-start;
+}
+
 /* ---------- small screens ---------- */
 @media (max-width: 900px) {
   .chart-grid,
@@ -811,6 +900,23 @@
 }
 
 @media (max-width: 760px) {
+  .tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tile {
+    padding: 14px;
+  }
+
+  .tile__value {
+    font-size: 1.55rem;
+  }
+
+  .tile__label {
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+  }
+
   .hero,
   .hero--with-stat {
     grid-template-columns: 1fr;
@@ -853,7 +959,8 @@
     transition-duration: 0.01ms !important;
   }
 
-  .timeline--animate {
+  .timeline--animate,
+  .timeline--interactive.timeline--animate {
     clip-path: none;
   }
 

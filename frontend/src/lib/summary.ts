@@ -113,8 +113,12 @@ export function summarizeComparison(result: CompareResult): ComparisonSummary {
 export interface RecordingSummary {
   readonly headline: string
   readonly context: string
+  /** A second supporting sentence: how the lead behavior was spread over the recording. */
+  readonly extra: string
   /** The behavior the headline is about (drives the icon/color). */
   readonly leadLabel: string
+  /** Separate stretches of the lead behavior. */
+  readonly leadStretches: number
   readonly duration: number
   readonly segmentCount: number
   /** Time-weighted mean confidence, 0-1. */
@@ -147,10 +151,19 @@ export function summarizeRecording(segments: readonly BehaviorSegment[]): Record
         ? `Among the named behaviors, ${behaviorInfo(social[0].label).gerund} was most common (${percent(social[0].share)} of the time).`
         : `${social.length === 1 ? 'It was the only named behavior detected.' : `The next most common was ${behaviorInfo(social[1].label).gerund} (${percent(social[1].share)}).`}`
 
+  const leadSegments = segments.filter((s) => s.behavior_label === top.label)
+  const longestLead = Math.max(...leadSegments.map((s) => s.end_time - s.start_time))
+  const extra =
+    leadSegments.length === 1
+      ? `${capitalize(topInfo.gerund)} happened in one continuous stretch of ${formatDuration(longestLead)}.`
+      : `${capitalize(topInfo.gerund)} came in ${leadSegments.length} separate stretches, the longest lasting ${formatDuration(longestLead)}.`
+
   return {
     headline,
     context,
+    extra,
     leadLabel: top.label,
+    leadStretches: leadSegments.length,
     duration,
     segmentCount: segments.length,
     meanConfidence: weighted.time > 0 ? weighted.sum / weighted.time : 0,

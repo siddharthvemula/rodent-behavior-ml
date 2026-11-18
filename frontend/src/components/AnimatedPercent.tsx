@@ -1,5 +1,5 @@
 import { useCountUp } from '../lib/useCountUp'
-import { percent } from '../lib/summary'
+import { formatDuration, percent } from '../lib/summary'
 
 interface AnimatedPercentProps {
   /** A fraction, 0-1. */
@@ -23,4 +23,14 @@ export function AnimatedPoints({ difference, delayMs = 0 }: AnimatedPointsProps)
   const points = Math.round(Math.abs(difference) * 100)
   const shown = Math.round(useCountUp(points, 900, delayMs))
   return <>{difference < 0 ? '−' : '+'}{shown}</>
+}
+
+interface AnimatedDurationProps {
+  readonly seconds: number
+  readonly delayMs?: number
+}
+
+/** "1 min 40 s" counting up from "0 s"; purely visual. */
+export function AnimatedDuration({ seconds, delayMs = 0 }: AnimatedDurationProps) {
+  return <>{formatDuration(useCountUp(seconds, 900, delayMs))}</>
 }

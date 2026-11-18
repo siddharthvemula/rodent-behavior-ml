@@ -118,6 +118,14 @@ describe('summarizeRecording', () => {
     expect(summarizeRecording([seg(0, 30, 'other')])!.context).toBe('No attacking, investigating or mounting was detected.')
   })
 
+  it('describes how the lead behavior was spread over the recording', () => {
+    const many = [seg(0, 30, 'investigation'), seg(30, 40, 'other'), seg(40, 55, 'investigation'), seg(55, 60, 'mount'), seg(60, 100, 'investigation')]
+    const s = summarizeRecording(many)!
+    expect(s.leadStretches).toBe(3)
+    expect(s.extra).toBe('Investigating came in 3 separate stretches, the longest lasting 40 s.')
+    expect(summarizeRecording(segments)!.extra).toBe('Investigating happened in one continuous stretch of 1 min.')
+  })
+
   it('returns null for an empty recording', () => {
     expect(summarizeRecording([])).toBeNull()
   })
