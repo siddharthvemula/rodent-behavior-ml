@@ -13,24 +13,24 @@ const control = new File(['{}'], 'control.json', { type: 'application/json' })
 const treated = new File(['{}'], 'treated.json', { type: 'application/json' })
 
 describe('CompareView', () => {
-  it('requires both control and treated files before running', async () => {
+  it('requires both recording files before running', async () => {
     render(<CompareView api={fakeApi(vi.fn())} />)
     const button = screen.getByRole('button', { name: /compare/i })
     expect(button).toBeDisabled()
 
-    await userEvent.upload(screen.getByLabelText(/control/i), control)
+    await userEvent.upload(screen.getByLabelText(/recording a/i), control)
     expect(button).toBeDisabled()
 
-    await userEvent.upload(screen.getByLabelText(/treated/i), treated)
+    await userEvent.upload(screen.getByLabelText(/recording b/i), treated)
     expect(button).toBeEnabled()
   })
 
-  it('sends control then treated and renders a side-by-side comparison', async () => {
+  it('sends recording A then B and renders a side-by-side comparison', async () => {
     const compare = vi.fn<ApiClient['compare']>().mockResolvedValue(compareMock.result)
     render(<CompareView api={fakeApi(compare)} />)
 
-    await userEvent.upload(screen.getByLabelText(/control/i), control)
-    await userEvent.upload(screen.getByLabelText(/treated/i), treated)
+    await userEvent.upload(screen.getByLabelText(/recording a/i), control)
+    await userEvent.upload(screen.getByLabelText(/recording b/i), treated)
     await userEvent.click(screen.getByRole('button', { name: /compare/i }))
 
     expect(compare).toHaveBeenCalledWith(control, treated)
@@ -47,8 +47,8 @@ describe('CompareView', () => {
     const compare = vi.fn<ApiClient['compare']>().mockRejectedValue(new Error('Inference job j timed out'))
     render(<CompareView api={fakeApi(compare)} />)
 
-    await userEvent.upload(screen.getByLabelText(/control/i), control)
-    await userEvent.upload(screen.getByLabelText(/treated/i), treated)
+    await userEvent.upload(screen.getByLabelText(/recording a/i), control)
+    await userEvent.upload(screen.getByLabelText(/recording b/i), treated)
     await userEvent.click(screen.getByRole('button', { name: /compare/i }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('timed out')
@@ -57,10 +57,10 @@ describe('CompareView', () => {
   it('switches between Summary and Detail without calling the backend again', async () => {
     const compare = vi.fn<ApiClient['compare']>().mockResolvedValue(compareMock.result)
     const { rerender } = render(<CompareView api={fakeApi(compare)} mode="summary" />)
-    await userEvent.upload(screen.getByLabelText(/control/i), control)
-    await userEvent.upload(screen.getByLabelText(/treated/i), treated)
+    await userEvent.upload(screen.getByLabelText(/recording a/i), control)
+    await userEvent.upload(screen.getByLabelText(/recording b/i), treated)
     await userEvent.click(screen.getByRole('button', { name: /compare/i }))
-    expect(await screen.findByRole('region', { name: /summary of control vs treated/i })).toBeInTheDocument()
+    expect(await screen.findByRole('region', { name: /summary of two-recording comparison/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 2, name: /attacking rose from 5% to 20% of the time/i })).toBeInTheDocument()
 
     rerender(<CompareView api={fakeApi(compare)} mode="detail" />)

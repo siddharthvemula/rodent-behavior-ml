@@ -29,7 +29,7 @@ export function formatDuration(totalSeconds: number): string {
   return seconds === 0 ? `${minutes} min` : `${minutes} min ${seconds} s`
 }
 
-// ---- control vs treated ----
+// ---- two-recording comparison ----
 
 export interface ComparisonLead {
   readonly label: string
@@ -88,7 +88,7 @@ export function summarizeComparison(result: CompareResult): ComparisonSummary {
     return {
       kind: 'similar',
       headline: 'Behavior looks about the same in both recordings',
-      context: `No behavior differs by more than ${Math.round(MEANINGFUL_DIFFERENCE * 100)} percentage points between control and treated.`,
+      context: `No behavior differs by more than ${Math.round(MEANINGFUL_DIFFERENCE * 100)} percentage points between the two recordings.`,
       alsoNoted: '',
       lead: null,
     }
@@ -102,7 +102,7 @@ export function summarizeComparison(result: CompareResult): ComparisonSummary {
   return {
     kind: 'changed',
     headline: `${capitalize(describeRow(top))} of the time`,
-    context: 'This is the biggest difference between the control and treated recordings.',
+    context: 'This is the biggest difference between the two recordings.',
     alsoNoted,
     lead,
   }

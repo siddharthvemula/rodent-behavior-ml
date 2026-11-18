@@ -36,17 +36,21 @@ export function CompareView({ api = defaultApi, mode = 'detail', onShowDetail }:
   return (
     <div className="view">
       <header className="view__header">
-        <h2>Control vs treated</h2>
+        <h2>Compare two recordings</h2>
         <p className="muted">
-          Runs the classifier on each recording separately and compares per-behavior frequencies.
+          Runs the classifier on each recording separately and compares per-behavior frequencies between the two. It describes these recordings; it does not diagnose or measure a treatment effect.
         </p>
       </header>
 
       <form className="card form" onSubmit={handleSubmit}>
         <div className="form__pair">
-          <FilePicker label="Control keypoints (JSON)" onChange={selectFile(setControl)} disabled={isLoading} />
-          <FilePicker label="Treated keypoints (JSON)" onChange={selectFile(setTreated)} disabled={isLoading} />
+          <FilePicker label="Recording A keypoints (JSON)" onChange={selectFile(setControl)} disabled={isLoading} />
+          <FilePicker label="Recording B keypoints (JSON)" onChange={selectFile(setTreated)} disabled={isLoading} />
         </div>
+        <p className="muted small">
+          Demo data note: the demo compares two real CalMS21 recordings as a stand-in for control and treatment
+          groups. This project has no real drug-trial data.
+        </p>
         <button type="submit" className="button" disabled={!control || !treated || isLoading}>
           {isLoading ? 'Comparing…' : 'Compare behaviors'}
         </button>

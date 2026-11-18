@@ -23,8 +23,8 @@ const enter = (step: number) => ({ ['--s' as string]: step }) as CSSProperties
 function describeRow(row: CompareRow, standout: boolean): string {
   const info = behaviorInfo(row.label)
   const diff = points(row.difference)
-  const change = diff === 0 ? 'no difference' : `${Math.abs(diff)} percentage points ${diff > 0 ? 'higher' : 'lower'} in treated`
-  return `${info.title}: control ${percent(row.control)}, treated ${percent(row.treated)}, ${change}${standout ? '. Biggest change' : ''}`
+  const change = diff === 0 ? 'no difference' : `${Math.abs(diff)} percentage points ${diff > 0 ? 'higher' : 'lower'} in recording B`
+  return `${info.title}: recording A ${percent(row.control)}, recording B ${percent(row.treated)}, ${change}${standout ? '. Biggest change' : ''}`
 }
 
 function Arrow({ up }: { readonly up: boolean }) {
@@ -51,7 +51,7 @@ function Bar({ group, value, scaleMax, delay }: { readonly group: Group; readonl
   )
 }
 
-/** Plain-language finding plus animated control-vs-treated bars and donuts. */
+/** Plain-language finding plus animated side-by-side bars and donuts. */
 export function CompareSummary({ result, onShowDetail }: CompareSummaryProps) {
   // The behavior highlighted across bars and donuts (hover / focus), or null.
   const [active, setActive] = useState<string | null>(null)
@@ -77,11 +77,11 @@ export function CompareSummary({ result, onShowDetail }: CompareSummaryProps) {
   const activate = (label: string | null) => () => setActive(label)
 
   return (
-    <section className="summary" aria-label="Summary of control vs treated" style={{ ['--beh' as string]: lead ? colors[lead.label] : 'var(--accent)' }}>
+    <section className="summary" aria-label="Summary of two-recording comparison" style={{ ['--beh' as string]: lead ? colors[lead.label] : 'var(--accent)' }}>
       <Hero
         label={lead?.label ?? 'other'}
         color={lead ? colors[lead.label] : 'var(--text-muted)'}
-        eyebrow="Key finding · control → treated"
+        eyebrow="Key finding · recording A → B"
         headline={summary.headline}
         context={summary.context}
         extra={summary.alsoNoted}
@@ -90,8 +90,8 @@ export function CompareSummary({ result, onShowDetail }: CompareSummaryProps) {
             <HeroStat
               label="Biggest change"
               unit="pts"
-              caption={`${behaviorInfo(lead.label).title}, control → treated`}
-              spoken={`${Math.abs(leadPoints)} percentage points ${leadPoints >= 0 ? 'higher' : 'lower'} in the treated recording`}
+              caption={`${behaviorInfo(lead.label).title}, recording A → B`}
+              spoken={`${Math.abs(leadPoints)} percentage points ${leadPoints >= 0 ? 'higher' : 'lower'} in recording B`}
             >
               <AnimatedPoints difference={lead.difference} delayMs={HERO_COUNT_MS} />
             </HeroStat>
@@ -116,8 +116,8 @@ export function CompareSummary({ result, onShowDetail }: CompareSummaryProps) {
             <p className="muted small">Share of the recording spent on each behavior</p>
           </div>
           <ul className="key" aria-label="Legend">
-            <li><span className="key__swatch key__swatch--control" aria-hidden="true" /> Control</li>
-            <li><span className="key__swatch key__swatch--treated" aria-hidden="true" /> Treated</li>
+            <li><span className="key__swatch key__swatch--control" aria-hidden="true" /> Recording A</li>
+            <li><span className="key__swatch key__swatch--treated" aria-hidden="true" /> Recording B</li>
           </ul>
         </header>
 
@@ -172,15 +172,15 @@ export function CompareSummary({ result, onShowDetail }: CompareSummaryProps) {
 
           <aside className="donuts enter-at" style={{ ['--enter-delay' as string]: `${rowDelay(0)}ms` } as CSSProperties} aria-label="Share of each recording">
             <div className="donuts__pair">
-              <Donut name="Control" slices={slices('control')} defaultLabel={defaultLabel} active={active} onActiveChange={setActive} delayMs={rowDelay(0) + 150} />
-              <Donut name="Treated" slices={slices('treated')} defaultLabel={defaultLabel} active={active} onActiveChange={setActive} delayMs={rowDelay(0) + 300} />
+              <Donut name="Recording A" slices={slices('control')} defaultLabel={defaultLabel} active={active} onActiveChange={setActive} delayMs={rowDelay(0) + 150} />
+              <Donut name="Recording B" slices={slices('treated')} defaultLabel={defaultLabel} active={active} onActiveChange={setActive} delayMs={rowDelay(0) + 300} />
             </div>
             <BehaviorKey labels={labels} colors={colors} active={active} onActiveChange={setActive} />
           </aside>
         </div>
 
         <p className="footnote muted">
-          pts = percentage points of the recording. Based on one control and one treated recording, classified
+          pts = percentage points of the recording. Based on two recordings, classified
           automatically from pose tracking; it describes these clips and is not a statistical test.
         </p>
       </div>

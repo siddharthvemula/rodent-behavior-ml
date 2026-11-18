@@ -14,20 +14,20 @@ const formatDifference = (value: number) => `${value > 0 ? '+' : ''}${formatValu
 export function ComparisonChart({ result }: ComparisonChartProps) {
   const rows = buildCompareRows(result)
   if (rows.length === 0) {
-    return <p className="empty">No behaviors detected in either video.</p>
+    return <p className="empty">No behaviors detected in either recording.</p>
   }
 
   const maxValue = Math.max(...rows.flatMap((r) => [r.control, r.treated])) || 1
   const barWidth = (value: number) => `${(value / maxValue) * 100}%`
 
   return (
-    <section className="result" aria-label="Control vs treated comparison">
+    <section className="result" aria-label="Comparison of two recordings">
       <ul className="legend">
         <li>
-          <span className="swatch swatch--control" aria-hidden="true" /> Control
+          <span className="swatch swatch--control" aria-hidden="true" /> Recording A
         </li>
         <li>
-          <span className="swatch swatch--treated" aria-hidden="true" /> Treated
+          <span className="swatch swatch--treated" aria-hidden="true" /> Recording B
         </li>
       </ul>
 
@@ -36,10 +36,10 @@ export function ComparisonChart({ result }: ComparisonChartProps) {
           <tr>
             <th scope="col">Behavior</th>
             <th scope="col" className="bars">
-              Control vs treated
+              Recording A vs recording B
             </th>
-            <th scope="col" className="num">Control</th>
-            <th scope="col" className="num">Treated</th>
+            <th scope="col" className="num">Recording A</th>
+            <th scope="col" className="num">Recording B</th>
             <th scope="col" className="num">Difference</th>
           </tr>
         </thead>
@@ -60,7 +60,7 @@ export function ComparisonChart({ result }: ComparisonChartProps) {
           ))}
         </tbody>
       </table>
-      <p className="muted footnote">Difference = treated − control, as reported by the backend.</p>
+      <p className="muted footnote">Difference = recording B − recording A, as reported by the backend. This compares behavior between two recordings; it does not measure a treatment effect.</p>
     </section>
   )
 }

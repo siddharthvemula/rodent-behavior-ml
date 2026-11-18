@@ -1,6 +1,8 @@
-# Rodent Behavior ML Diagnosis
+# Rodent Behavior Analysis
 
-A classifier that labels mouse social behavior (attack, investigation, mount, other) from pose keypoints of two interacting mice, and compares behavior frequencies between a control animal and a treated animal, the kind of observation currently done by hand in early-stage drug trials.
+A classifier that labels mouse social behavior (attack, investigation, mount, other) from pose keypoints of two interacting mice, and compares behavior frequencies between two recordings. Automated behavior scoring like this replaces a task that is currently done by hand in studies of rodent behavior.
+
+> **Scope note:** this project demonstrates automated behavior classification and comparison. It does not diagnose anything or show that a drug or treatment worked. The compare demo uses two real CalMS21 recordings as a stand-in for control and treatment groups, because we have no real drug-trial data. Differences it reports are between those two clips only and are not a statistical test or evidence of a treatment effect.
 
 Built by a 3-person team, due Nov 28, 2026.
 
