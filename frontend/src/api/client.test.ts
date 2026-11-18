@@ -1,0 +1,138 @@
+import { describe, expect, it, vi } from 'vitest'
+import { ApiError, configFromEnv, createApiClient } from './client'
+import predictMock from '../mocks/predict.json'
+import compareMock from '../mocks/compare.json'
+
+const BASE_URL = 'http://api.test'
+const noSleep = () => Promise.resolve()
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
+function makeFile(name: string): File {
+  return new File(['keypoints'], name, { type: 'application/octet-stream' })
+}
+
+function liveClient(fetchImpl: typeof fetch, maxPolls = 5) {
+  return createApiClient({ baseUrl: BASE_URL, useMock: false, fetchImpl, sleep: noSleep, maxPolls })
+}
+
+describe('configFromEnv', () => {
+  it('uses mock mode when no base URL is set', () => {
+    expect(configFromEnv({})).toEqual({ baseUrl: '', useMock: true })
+  })
+
+  it('uses the live backend when a base URL is set, stripping trailing slashes', () => {
+    expect(configFromEnv({ VITE_API_BASE_URL: 'http://localhost:8000/ ' })).toEqual({
+      baseUrl: 'http://localhost:8000',
+      useMock: false,
+    })
+  })
+
+  it('forces mock mode when VITE_USE_MOCK is "true"', () => {
+    expect(configFromEnv({ VITE_API_BASE_URL: 'http://x', VITE_USE_MOCK: 'true' }).useMock).toBe(true)
+  })
+})
+
+describe('mock mode', () => {
+  const client = createApiClient({ baseUrl: '', useMock: true, sleep: noSleep })
+
+  it('returns the mocked predict timeline in contract shape', async () => {
+    const segments = await client.predict(makeFile('a.mp4'))
+    expect(segments).toEqual(predictMock.result)
+  })
+
+  it('returns the mocked comparison in contract shape', async () => {
+    const result = await client.compare(makeFile('c.mp4'), makeFile('t.mp4'))
+    expect(result).toEqual(compareMock.result)
+  })
+})
+
+describe('predict against the live backend', () => {
+  it('posts the file as multipart field "file" and returns a finished result', async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(predictMock))
+
+    const segments = await liveClient(fetchImpl).predict(makeFile('a.mp4'))
+
+    expect(segments).toHaveLength(3)
+    const [url, init] = fetchImpl.mock.calls[0]
+    expect(url).toBe(`${BASE_URL}/predict`)
+    expect(init?.method).toBe('POST')
+    expect((init?.body as FormData).get('file')).toBeInstanceOf(File)
+  })
+
+  it('polls GET /jobs/{id} until the job is done', async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(jsonResponse({ job_id: 'j1', status: 'queued', result: null }))
+      .mockResolvedValueOnce(jsonResponse({ job_id: 'j1', status: 'running', result: null }))
+      .mockResolvedValueOnce(jsonResponse({ ...predictMock, job_id: 'j1' }))
+
+    const segments = await liveClient(fetchImpl).predict(makeFile('a.mp4'))
+
+    expect(segments).toEqual(predictMock.result)
+    expect(fetchImpl.mock.calls[1][0]).toBe(`${BASE_URL}/jobs/j1`)
+    expect(fetchImpl).toHaveBeenCalledTimes(3)
+  })
+
+  it('throws when the job fails', async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(jsonResponse({ job_id: 'j', status: 'failed', result: null }))
+    await expect(liveClient(fetchImpl).predict(makeFile('a.mp4'))).rejects.toThrow(/failed/i)
+  })
+
+  it('gives up after maxPolls', async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockImplementation(() => Promise.resolve(jsonResponse({ job_id: 'j', status: 'running', result: null })))
+    await expect(liveClient(fetchImpl, 2).predict(makeFile('a.mp4'))).rejects.toThrow(/timed out/i)
+    expect(fetchImpl).toHaveBeenCalledTimes(3)
+  })
+
+  it('surfaces the backend detail on HTTP errors', async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({ detail: 'job not found' }, 404))
+    const error = await liveClient(fetchImpl)
+      .predict(makeFile('a.mp4'))
+      .catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(ApiError)
+    expect((error as ApiError).message).toMatch(/404.*job not found/)
+  })
+
+  it('reports network failures as ApiError', async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockRejectedValue(new TypeError('Failed to fetch'))
+    await expect(liveClient(fetchImpl).predict(makeFile('a.mp4'))).rejects.toThrow(/could not reach the backend/i)
+  })
+
+  it('rejects responses that do not match the contract', async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(jsonResponse({ job_id: 'j', status: 'done', result: [{ start_time: 'zero' }] }))
+    await expect(liveClient(fetchImpl).predict(makeFile('a.mp4'))).rejects.toThrow(/unexpected response/i)
+  })
+})
+
+describe('compare against the live backend', () => {
+  it('posts control and treated files and returns frequencies', async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(compareMock))
+
+    const result = await liveClient(fetchImpl).compare(makeFile('c.mp4'), makeFile('t.mp4'))
+
+    expect(result.difference.grooming).toBeCloseTo(-0.28)
+    const [url, init] = fetchImpl.mock.calls[0]
+    expect(url).toBe(`${BASE_URL}/compare`)
+    const body = init?.body as FormData
+    expect((body.get('control') as File).name).toBe('c.mp4')
+    expect((body.get('treated') as File).name).toBe('t.mp4')
+  })
+
+  it('rejects a comparison with non-numeric frequencies', async () => {
+    const bad = { job_id: 'j', status: 'done', result: { control: { a: 'x' }, treated: {}, difference: {} } }
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(bad))
+    await expect(liveClient(fetchImpl).compare(makeFile('c'), makeFile('t'))).rejects.toThrow(/unexpected response/i)
+  })
+})
