@@ -9,11 +9,10 @@ Deadline: Nov 28, 2026. 4-person team.
 - Stretch goal (only after the core works end to end): shift/anomaly detection against a learned baseline.
 - Product: both a per-video behavior timeline and a control-vs-treated comparison view.
 
-## Team roles
-- Data/ML: [name]
-- Backend (FastAPI + model serving): [name]
-- Frontend (React): [name]
-- Deployment/DevOps + integration + PM: Sid
+## Team roles (3 people)
+- Data/ML: krishtotala105
+- Frontend (React): mehulvar
+- Backend (FastAPI + model serving) + Deployment/DevOps + integration + PM: Sid
 
 ## Timeline
 | Days | Focus |
