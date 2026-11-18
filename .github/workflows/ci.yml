@@ -20,6 +20,18 @@ jobs:
       - name: Run backend tests
         run: pytest backend/tests -v
 
+  ml:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install ml test dependencies
+        run: pip install numpy==2.2.6 pytest==8.3.3
+      - name: Run ml tests
+        run: pytest ml/tests -v
+
   frontend:
     runs-on: ubuntu-latest
     steps:

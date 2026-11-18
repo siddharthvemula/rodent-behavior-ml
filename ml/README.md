@@ -4,30 +4,49 @@ Owner: krishtotala105
 
 Dataset loading, preprocessing, training, and the trained model. This is where the actual behavior classifier gets built.
 
-## Status (Nov 17-18)
-A placeholder pipeline is in place (preprocess.py, model.py, train.py, inference.py) so the backend has a real model to call instead of hardcoded numbers, done to keep the team moving while this repo had no ML work started yet with the deadline close. It is trained on **synthetic, generated keypoint sequences**, not CalMS21 or MABe22, and uses a scikit-learn RandomForest on hand-crafted features, not the GRU/LSTM originally planned (no GPU/torch and no network access to the real datasets in the environment this was built in). It works end to end (backend calls it, gets real predictions back for a valid keypoints file), but it has learned nothing about real mouse behavior. Don't report its accuracy numbers as a result, they're against synthetic data by construction.
+## Status (Nov 18)
+Real-data work is underway (issue #1): **CalMS21 Task 1 only**, four labels (`attack`, `investigation`, `mount`, `other`), dyadic two-mouse schema (see `../ARCHITECTURE.md` "Data schema"). Plan: scikit-learn baseline on engineered dyad features first, a GRU/1D-CNN only if its macro-F1 is poor. Training runs on Colab/Kaggle (no torch/GPU locally).
 
-This is not a substitute for the real work below, it's a stand-in to unblock everyone else. Replacing it means:
-1. `download_data.py`: actually write it, pull CalMS21/MABe22 for real (not written yet, these notes assume you're starting that now).
-2. `preprocess.py`: replace `parse_keypoints_json` (or extend it) to read the real datasets' actual keypoint/label format into frames, and decide whether the simple hand-crafted features in `extract_features` are good enough or whether to feed raw sequences into a real GRU/LSTM/transformer instead (likely the latter, on Colab/Kaggle where torch + GPU exist).
-3. `train.py`: replace `simulate_sequence`/`build_synthetic_dataset` with loading the real preprocessed data.
-4. `model.py`/`inference.py`: keep the same function signatures (`predict_behaviors`, `compare_behaviors`) so the backend integration doesn't need to change, swap what's inside.
-5. Once retrained: copy `model.py`, `preprocess.py`, `inference.py`, and the new `model.joblib` (or equivalent) into `backend/ml_model/`, overwriting the placeholder copies. See `backend/ml_model/inference.py`'s docstring for why that duplication exists (Vercel Services builds `backend/` independently from `ml/`).
+Done:
+- `download_data.py`: fetches `task1_classic_classification.zip` (457,357,950 bytes), verifies size and zip CRCs, extracts only `calms21_task1_{train,test}.json` into `data/raw/calms21/`.
+- `preprocess.py`: new schema, upload parser (`parse_keypoints_json`), CalMS21 loader (`load_calms21`), by-recording train/val split, and a compact `.npz` cache (`python ml/preprocess.py` -> `data/processed/`, ~94 MB for both splits, easy to upload to Colab).
+- `tests/`: loader + upload-contract tests (run in CI).
 
-## Datasets (see root `PROJECT_PLAN.md` for why these two)
-- [CalMS21](https://sites.google.com/view/computational-behavior/our-datasets/calms21-dataset)
-- [MABe22 mouse triplets](https://data.caltech.edu/records/rdsa8-rde65)
+Not done yet (step 3+): feature extraction, `model.py`, `train.py`, `inference.py`.
 
-Both are CC BY-NC-SA: cite the papers, keep this project non-commercial, and never commit the raw dataset here (the root `.gitignore` already excludes `/data/raw/`). Write a download script instead of checking in the files.
+**Currently broken on purpose:** `model.py`, `train.py` and `inference.py` here are still the old synthetic placeholder (single animal, 3 keypoints, `grooming`/`rearing` labels) and `train.py`/`inference.py` no longer import (they use the removed `Frame`/`extract_features`). They get rewritten next. The deployed backend is unaffected: it has its own copy in `backend/ml_model/`, which keeps working until the real model replaces it.
 
-## Expected layout
+### Quick start
+```
+python ml/download_data.py          # ~457 MB download, needs ~6 GB free while extracting
+python ml/preprocess.py             # JSON (1.7 GB, ~2.5 GB RAM) -> data/processed/*.npz
+pytest ml/tests
+```
+
+### What the data looks like (verified on the real files)
+| | recordings | frames | attack | investigation | mount | other |
+| --- | --- | --- | --- | --- | --- | --- |
+| train | 70 | 507,738 | 2.8% | 28.9% | 5.6% | 62.7% |
+| test | 19 | 262,107 | 4.8% | 23.4% | 12.2% | 59.7% |
+
+30 Hz, 1024x570 px, 7 keypoints per mouse, mouse 0 = resident, mouse 1 = intruder. Report **macro-F1 and per-class F1**, never plain accuracy (`other` is ~60%). Note the train/test class balance differs (mount 5.6% -> 12.2%, attack 2.8% -> 4.8%), so validation scores from a split of train will not exactly predict test. Train/test are split by animal identity, so always split by recording, never by frame.
+
+When the real model is ready, replacing the placeholder means:
+1. Keep `predict_behaviors` / `compare_behaviors` signatures in `inference.py` (the backend calls them).
+2. Copy `model.py`, `preprocess.py`, `inference.py` and the model artifact into `backend/ml_model/`, overwriting the placeholder copies. See `backend/ml_model/inference.py`'s docstring for why that duplication exists (Vercel Services builds `backend/` independently from `ml/`).
+
+## Dataset
+[CalMS21](https://data.caltech.edu/records/s0vdx-0k302) Task 1 (classic classification). Cite the CalMS21 paper (Sun et al., 2021, "The Multi-Agent Behavior Dataset: Mouse Dyadic Social Interactions"). The Caltech record lists it as CC BY 4.0; we stay non-commercial regardless. Never commit the raw data (`/data/raw/` and `/data/processed/` are gitignored). MABe22 was dropped, see `../ARCHITECTURE.md`.
+
+## Layout
 ```
 /ml
-  download_data.py   # fetches datasets into a local, gitignored /data/raw/
-  preprocess.py       # builds train/val/test splits from pose keypoints + labels
-  model.py            # the sequence classifier (GRU/LSTM or small transformer over keypoints)
-  train.py             # training loop
-  inference.py         # loads a trained checkpoint, returns predictions in the backend's schema
+  download_data.py   # fetches CalMS21 Task 1 into gitignored data/raw/calms21/
+  preprocess.py      # schema, upload parser, CalMS21 loader, splits, .npz cache
+  model.py           # (placeholder, to be replaced)
+  train.py           # (placeholder, to be replaced)
+  inference.py       # (placeholder, to be replaced)
+  tests/             # pytest, run in CI
 ```
 
 ## Output contract
