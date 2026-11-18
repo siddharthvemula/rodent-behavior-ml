@@ -10,6 +10,15 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: /per-video behavior timeline/i })).toBeVisible()
   })
 
+  it('shows a demo-mode banner only when serving canned data', () => {
+    const { unmount } = render(<App mockMode />)
+    expect(screen.getByRole('note')).toHaveTextContent(/demo mode.*canned sample data/i)
+    unmount()
+
+    render(<App mockMode={false} />)
+    expect(screen.queryByRole('note')).not.toBeInTheDocument()
+  })
+
   it('switches to the comparison view and keeps the timeline view state', async () => {
     render(<App />)
     const file = new File(['{}'], 'kept.json', { type: 'application/json' })

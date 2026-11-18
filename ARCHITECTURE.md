@@ -17,7 +17,7 @@ ARCHITECTURE.md
 ```
 
 ## Deployment routing (updated Nov 17, flagging since it changes the paths below)
-`vercel.json` routes every `/api/*` request to the backend service and everything else to the frontend. That means all backend routes live under `/api`, not at the root, so the frontend and backend share one origin and no CORS configuration is needed. The frontend's `VITE_API_BASE_URL` must be set to `/api` in the Vercel project's Production environment variables for this to work (falls back to mock mode if unset, see `frontend/src/api/client.ts`).
+`vercel.json` routes every `/api/*` request to the backend service and everything else to the frontend. That means all backend routes live under `/api`, not at the root, so the frontend and backend share one origin and no CORS configuration is needed. Production builds of the frontend default to the same-origin `/api`, so no environment variable is needed on Vercel (production or preview); set `VITE_API_BASE_URL` only to point at a different backend. Canned-data mock mode is opt-in (`VITE_USE_MOCK=true`) or dev-only (`npm run dev` with no `VITE_API_BASE_URL`), and always shows a visible "Demo mode" banner. See `configFromEnv` in `frontend/src/api/client.ts`. (Before Nov 18 a deployment missing the variable silently served canned results, which made a Vercel preview look like the backend returned a fake timeline.)
 
 ## API contract (lock before writing feature code, edit this instead of redebating it elsewhere)
 - `POST /api/predict` — input: a pre-extracted keypoints JSON file (see Data schema; raw video is not supported, there is no pose-extraction step yet). Output: `{job_id, status, result}`, result is an ordered list of `{start_time, end_time, behavior_label, confidence}` once `status` is `done`.
