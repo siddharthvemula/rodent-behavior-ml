@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import numpy as np
 from fastapi.testclient import TestClient
-from main import _mock_compare_result, _mock_predict_result, app, jobs
+from main import app, jobs
 from ml_model.preprocess import BEHAVIOR_LABELS, to_json_dict
 
 client = TestClient(app)
@@ -39,10 +39,7 @@ def test_health():
 
 
 def test_predict_shape():
-    resp = client.post(
-        "/api/predict",
-        files={"file": ("test.mp4", b"fake-bytes", "video/mp4")},
-    )
+    resp = _post_predict(_keypoints_json(120))
     assert resp.status_code == 200
     body = resp.json()
     assert "job_id" in body
@@ -56,8 +53,8 @@ def test_compare_shape():
     resp = client.post(
         "/api/compare",
         files={
-            "control": ("c.mp4", b"fake-bytes", "video/mp4"),
-            "treated": ("t.mp4", b"fake-bytes", "video/mp4"),
+            "control": ("c.json", _keypoints_json(120, seed=1), "application/json"),
+            "treated": ("t.json", _keypoints_json(120, seed=2), "application/json"),
         },
     )
     assert resp.status_code == 200
@@ -100,14 +97,28 @@ def test_compare_rejects_empty_file():
     assert resp.status_code == 400
 
 
-def test_video_fallback_uses_the_four_labels_only():
-    """Non-JSON uploads (raw video) get the stopgap result; it must still use
-    the real label set so the UI never sees the retired grooming/rearing."""
-    for seg in _mock_predict_result():
-        assert seg["behavior_label"] in BEHAVIOR_LABELS
-    comp = _mock_compare_result()
-    for block in comp.values():
-        assert list(block) == BEHAVIOR_LABELS
+def test_predict_rejects_video_with_415_and_no_fake_result():
+    before = len(jobs)
+    resp = client.post("/api/predict", files={"file": ("clip.mp4", b"\x00\x00\x00\x18ftypmp42" + b"x" * 500, "video/mp4")})
+    assert resp.status_code == 415
+    detail = resp.json()["detail"]
+    assert "keypoints" in detail and "video" in detail
+    assert "result" not in resp.json()
+    assert len(jobs) == before                                # no job created
+
+
+def test_compare_rejects_video_with_415_naming_the_field():
+    before = len(jobs)
+    resp = client.post(
+        "/api/compare",
+        files={
+            "control": ("c.json", _keypoints_json(60), "application/json"),
+            "treated": ("t.mp4", b"fake-video-bytes", "video/mp4"),
+        },
+    )
+    assert resp.status_code == 415
+    assert "treated" in resp.json()["detail"]
+    assert len(jobs) == before
 
 
 def test_predict_real_model_for_keypoints_file():
@@ -117,7 +128,6 @@ def test_predict_real_model_for_keypoints_file():
     body = resp.json()
     assert body["status"] == "done"
     segs = body["result"]
-    assert segs != _mock_predict_result()                      # not the stopgap
     assert segs[0]["start_time"] == 0.0
     assert segs[-1]["end_time"] == n / rate                    # covers the whole recording
     for a, b in zip(segs, segs[1:]):
@@ -163,9 +173,9 @@ def test_predict_rejects_out_of_range_frame_rate():
         assert resp.status_code == 422, rate
 
 
-def test_predict_non_keypoints_json_without_frames_is_treated_as_not_keypoints():
-    resp = _post_predict(b'{"hello": "world"}')
-    assert resp.status_code == 200 and resp.json()["result"] == _mock_predict_result()
+def test_predict_json_without_frames_is_not_keypoints_415():
+    for body in (b'{"hello": "world"}', b"[1, 2, 3]", b"not json at all"):
+        assert _post_predict(body).status_code == 415, body
 
 
 def test_compare_real_model_for_keypoints_files():
@@ -178,7 +188,6 @@ def test_compare_real_model_for_keypoints_files():
     )
     assert resp.status_code == 200
     result = resp.json()["result"]
-    assert result != _mock_compare_result()
     assert set(result) == {"control", "treated", "difference"}
     for block in result.values():
         assert list(block) == BEHAVIOR_LABELS
@@ -196,14 +205,3 @@ def test_compare_rejects_malformed_keypoints_with_422():
     )
     assert resp.status_code == 422
     assert "treated" in resp.json()["detail"]
-
-
-def test_compare_rejects_mixed_keypoints_and_video():
-    resp = client.post(
-        "/api/compare",
-        files={
-            "control": ("c.json", _keypoints_json(60), "application/json"),
-            "treated": ("t.mp4", b"fake-video-bytes", "video/mp4"),
-        },
-    )
-    assert resp.status_code == 422

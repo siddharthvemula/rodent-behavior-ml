@@ -9,8 +9,8 @@ function fakeApi(compare: ApiClient['compare']): Pick<ApiClient, 'compare'> {
   return { compare }
 }
 
-const control = new File(['c'], 'control.mp4', { type: 'video/mp4' })
-const treated = new File(['t'], 'treated.mp4', { type: 'video/mp4' })
+const control = new File(['{}'], 'control.json', { type: 'application/json' })
+const treated = new File(['{}'], 'treated.json', { type: 'application/json' })
 
 describe('CompareView', () => {
   it('requires both control and treated files before running', async () => {

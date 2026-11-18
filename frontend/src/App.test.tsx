@@ -12,8 +12,8 @@ describe('App', () => {
 
   it('switches to the comparison view and keeps the timeline view state', async () => {
     render(<App />)
-    const file = new File(['x'], 'kept.mp4', { type: 'video/mp4' })
-    const input = screen.getByLabelText<HTMLInputElement>(/video or keypoint file/i)
+    const file = new File(['{}'], 'kept.json', { type: 'application/json' })
+    const input = screen.getByLabelText<HTMLInputElement>(/keypoints file/i)
     await userEvent.upload(input, file)
 
     await userEvent.click(screen.getByRole('tab', { name: /control vs treated/i }))
@@ -21,7 +21,7 @@ describe('App', () => {
     expect(screen.queryByRole('heading', { name: /per-video behavior timeline/i })).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('tab', { name: /timeline/i }))
-    expect(input.files?.[0]?.name).toBe('kept.mp4')
+    expect(input.files?.[0]?.name).toBe('kept.json')
     expect(screen.getByRole('button', { name: /predict behaviors/i })).toBeEnabled()
   })
 })

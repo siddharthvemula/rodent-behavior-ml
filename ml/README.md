@@ -74,4 +74,4 @@ pytest ml/tests
 ```
 
 ## Output contract
-`inference.py` must return results in the shape `/backend/main.py`'s response models expect (the stopgap `_mock_predict_result()` / `_mock_compare_result()` there use the same shape), an ordered list of `{start_time, end_time, behavior_label, confidence}` for predict, and `{control, treated, difference}` frequency dicts for compare. Check `../ARCHITECTURE.md` and `../backend/main.py` before changing that shape, the backend and frontend are already built against it.
+`inference.py` must return results in the shape `/backend/main.py`'s response models expect an ordered list of `{start_time, end_time, behavior_label, confidence}` for predict, and `{control, treated, difference}` frequency dicts for compare. Check `../ARCHITECTURE.md` and `../backend/main.py` before changing that shape, the backend and frontend are already built against it.

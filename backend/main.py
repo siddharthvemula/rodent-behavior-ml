@@ -22,18 +22,14 @@ of the matching files in ml/, enforced by tests/test_ml_sync.py; see that
 package's docstring for why it's duplicated). Labels are attack /
 investigation / mount / other.
 
-Two other kinds of upload:
+Uploads that aren't valid keypoints JSON are rejected, never answered with
+made-up results:
   * JSON that is clearly an attempt at keypoints (has a "frames" key) but
-    doesn't match the contract gets a 422 with the reason. It is never
-    answered with made-up results.
-  * Anything that isn't JSON (e.g. a raw video) can't be classified, since
-    no pose-extraction step exists yet. For now these still get the
-    hardcoded demo result below so the upload flow keeps working; this is a
-    known stopgap, flagged in the PR and ARCHITECTURE.md, and the result is
-    NOT a real prediction.
+    doesn't match the contract gets a 422 with the reason.
+  * Anything else (e.g. a raw video, which we can't classify because no
+    pose-extraction step exists yet) gets a 415.
 """
 import json
-import logging
 import sys
 import uuid
 from datetime import datetime, timezone
@@ -46,8 +42,6 @@ from pydantic import BaseModel
 sys.path.insert(0, str(Path(__file__).parent))
 from ml_model.inference import compare_behaviors, predict_behaviors
 from ml_model.preprocess import KeypointsFormatError, parse_keypoints_json
-
-logger = logging.getLogger("rodent-behavior-api")
 
 app = FastAPI(title="Rodent Behavior ML API")
 api = APIRouter(prefix="/api")
@@ -122,9 +116,10 @@ def _looks_like_keypoints_attempt(content: bytes) -> bool:
     return isinstance(data, dict) and "frames" in data
 
 
-def _parse_or_fallback(content: bytes, field_name: str):
-    """Returns (keypoints, frame_rate), or None if the upload isn't JSON at
-    all (video fallback). Raises HTTP 422 for malformed keypoints JSON."""
+def _parse_keypoints(content: bytes, field_name: str):
+    """Returns (keypoints, frame_rate) or raises: 422 for keypoints JSON that
+    doesn't match the schema (with the reason), 415 for anything that isn't
+    keypoints JSON at all (e.g. a raw video, which we can't classify yet)."""
     try:
         return parse_keypoints_json(content)
     except KeypointsFormatError as exc:
@@ -133,39 +128,21 @@ def _parse_or_fallback(content: bytes, field_name: str):
                 status_code=422,
                 detail=f"'{field_name}' is not a valid keypoints file: {exc}. See ARCHITECTURE.md 'Data schema'.",
             ) from exc
-        return None
-
-
-# STOPGAP, not a prediction: returned only for uploads that aren't keypoints
-# JSON (raw video), because there is no pose-extraction step yet. Uses the
-# real label set so the UI renders; the numbers are made up.
-def _mock_predict_result() -> List[dict]:
-    return [
-        {"start_time": 0.0, "end_time": 4.2, "behavior_label": "other", "confidence": 0.91},
-        {"start_time": 4.2, "end_time": 9.8, "behavior_label": "investigation", "confidence": 0.77},
-        {"start_time": 9.8, "end_time": 15.0, "behavior_label": "mount", "confidence": 0.84},
-    ]
-
-
-def _mock_compare_result() -> dict:
-    return {
-        "control": {"attack": 0.05, "investigation": 0.35, "mount": 0.10, "other": 0.50},
-        "treated": {"attack": 0.20, "investigation": 0.30, "mount": 0.05, "other": 0.45},
-        "difference": {"attack": 0.15, "investigation": -0.05, "mount": -0.05, "other": -0.05},
-    }
+        raise HTTPException(
+            status_code=415,
+            detail=(
+                f"'{field_name}' is not a keypoints JSON file ({exc}). Only pre-extracted pose "
+                "keypoints are supported; raw video can't be classified yet. See ARCHITECTURE.md 'Data schema'."
+            ),
+        ) from exc
 
 
 @api.post("/predict", response_model=JobStatus)
 async def predict(file: UploadFile = File(...)):
     content = await _read_and_validate(file, "file")
-    parsed = _parse_or_fallback(content, "file")
+    keypoints, frame_rate = _parse_keypoints(content, "file")
     job_id = _new_job()
-    if parsed is None:
-        logger.warning("predict: upload is not keypoints JSON, returning the demo stopgap result")
-        result = _mock_predict_result()
-    else:
-        keypoints, frame_rate = parsed
-        result = predict_behaviors(keypoints, frame_rate)
+    result = predict_behaviors(keypoints, frame_rate)
     jobs[job_id]["status"] = "done"
     jobs[job_id]["result"] = result
     return JobStatus(job_id=job_id, status=jobs[job_id]["status"], result=jobs[job_id]["result"])
@@ -175,21 +152,10 @@ async def predict(file: UploadFile = File(...)):
 async def compare(control: UploadFile = File(...), treated: UploadFile = File(...)):
     control_content = await _read_and_validate(control, "control")
     treated_content = await _read_and_validate(treated, "treated")
-    control_parsed = _parse_or_fallback(control_content, "control")
-    treated_parsed = _parse_or_fallback(treated_content, "treated")
-    if (control_parsed is None) != (treated_parsed is None):
-        raise HTTPException(
-            status_code=422,
-            detail="'control' and 'treated' must both be keypoints JSON (or both videos); got one of each",
-        )
+    control_kp, control_rate = _parse_keypoints(control_content, "control")
+    treated_kp, treated_rate = _parse_keypoints(treated_content, "treated")
     job_id = _new_job()
-    if control_parsed is None or treated_parsed is None:
-        logger.warning("compare: uploads are not keypoints JSON, returning the demo stopgap result")
-        result = _mock_compare_result()
-    else:
-        control_kp, control_rate = control_parsed
-        treated_kp, treated_rate = treated_parsed
-        result = compare_behaviors(control_kp, treated_kp, control_rate, treated_rate)
+    result = compare_behaviors(control_kp, treated_kp, control_rate, treated_rate)
     jobs[job_id]["status"] = "done"
     jobs[job_id]["result"] = result
     return JobStatus(job_id=job_id, status=jobs[job_id]["status"], result=jobs[job_id]["result"])

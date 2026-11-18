@@ -39,8 +39,8 @@ export function CompareView({ api = defaultApi }: CompareViewProps) {
 
       <form className="card form" onSubmit={handleSubmit}>
         <div className="form__pair">
-          <FilePicker label="Control video" onChange={selectFile(setControl)} disabled={isLoading} />
-          <FilePicker label="Treated video" onChange={selectFile(setTreated)} disabled={isLoading} />
+          <FilePicker label="Control keypoints (JSON)" onChange={selectFile(setControl)} disabled={isLoading} />
+          <FilePicker label="Treated keypoints (JSON)" onChange={selectFile(setTreated)} disabled={isLoading} />
         </div>
         <button type="submit" className="button" disabled={!control || !treated || isLoading}>
           {isLoading ? 'Comparing…' : 'Compare behaviors'}

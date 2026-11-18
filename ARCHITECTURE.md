@@ -20,13 +20,13 @@ ARCHITECTURE.md
 `vercel.json` routes every `/api/*` request to the backend service and everything else to the frontend. That means all backend routes live under `/api`, not at the root, so the frontend and backend share one origin and no CORS configuration is needed. The frontend's `VITE_API_BASE_URL` must be set to `/api` in the Vercel project's Production environment variables for this to work (falls back to mock mode if unset, see `frontend/src/api/client.ts`).
 
 ## API contract (lock before writing feature code, edit this instead of redebating it elsewhere)
-- `POST /api/predict` — input: video file or pre-extracted keypoints. Output: `{job_id, status, result}`, result is an ordered list of `{start_time, end_time, behavior_label, confidence}` once `status` is `done`.
-- `POST /api/compare` — input: two videos/keypoint sets (`control`, `treated` multipart fields). Output: same job envelope, result is `{control, treated, difference}` per-behavior frequency dicts.
+- `POST /api/predict` — input: a pre-extracted keypoints JSON file (see Data schema; raw video is not supported, there is no pose-extraction step yet). Output: `{job_id, status, result}`, result is an ordered list of `{start_time, end_time, behavior_label, confidence}` once `status` is `done`.
+- `POST /api/compare` — input: two keypoints JSON files (`control`, `treated` multipart fields). Output: same job envelope, result is `{control, treated, difference}` per-behavior frequency dicts.
 - `GET /api/jobs/{job_id}` — poll until `status` is `done` or `failed`.
 - Inference runs as a background job, not inline in the request (Vercel functions time out on long-running work).
 
 ## Known limit: upload size (flagged Nov 17)
-Vercel Functions cap every request body at 4.5MB, with no way to raise it, this applies to `/api/predict` and `/api/compare` since they're Vercel Functions. The backend enforces a 4MB per-file limit (`MAX_UPLOAD_BYTES` in `backend/main.py`) and returns a clear 413 instead of a cryptic platform error. A pre-extracted keypoints file should comfortably fit; a raw video clip for the demo needs to be short/low-res enough to stay under this, or trimmed first. A `rodent-behavior-ml-blob` Vercel Blob store already exists for a proper fix (direct-to-Blob client uploads bypassing this limit entirely), but that needs a small token-minting endpoint and isn't required for Nov 28. Stretch goal if time allows, don't block on it.
+Vercel Functions cap every request body at 4.5MB, with no way to raise it, this applies to `/api/predict` and `/api/compare` since they're Vercel Functions. The backend enforces a 4MB per-file limit (`MAX_UPLOAD_BYTES` in `backend/main.py`) and returns a clear 413 instead of a cryptic platform error. A keypoints file should fit comfortably: a 100 s clip (3,000 frames) is ~1.9 MB (`python ml/export_clip.py` makes them from CalMS21). A `rodent-behavior-ml-blob` Vercel Blob store already exists for a proper fix (direct-to-Blob client uploads bypassing this limit entirely), but that needs a small token-minting endpoint and isn't required for Nov 28. Stretch goal if time allows, don't block on it.
 
 ## Data schema (updated Nov 18 for CalMS21 Task 1, replaces the day-one single-animal schema)
 - Input: pose keypoints per frame for a two-mouse (dyadic) recording, from the dataset's existing tracking, not re-derived. JSON:
@@ -70,5 +70,4 @@ Upload handling (`backend/main.py`):
 - Valid keypoints JSON -> real inference.
 - JSON with a `frames` key that doesn't match the schema (including the retired single-animal format) -> **422** with the reason. Never a fabricated result.
 - `frame_rate` outside 1-500 -> 422. Any valid rate is resampled to 30 Hz internally.
-- `/api/compare` needs both files to be the same kind (both keypoints, or both video).
-- Anything that isn't JSON (a raw video) still gets a **hardcoded stopgap result** with made-up numbers, because there is still no pose-extraction step from video to keypoints. It uses the real four labels so the UI renders, but it is NOT a prediction. Replacing it with a 4xx error is a one-line change in `main.py` if we'd rather not show fake output in the demo.
+- Anything that isn't keypoints JSON at all (e.g. a raw video, since there is no pose-extraction step from video to keypoints yet) -> **415** with an explanation. For `/api/compare` the detail names which file (`control` or `treated`) was rejected. The backend never returns made-up results; an earlier stopgap that did was removed on Nov 18.
