@@ -4,7 +4,7 @@ Deadline: Nov 28, 2026. 4-person team.
 
 ## Locked decisions (do not redebate these)
 - Context: hackathon submission and/or scored competition. Demo polish and a clearly reported metric matter.
-- Scope: mice, social/dyadic behavior. Built on CalMS21 and MABe22 (CC BY-NC-SA, non-commercial, cite the papers, never commit the raw dataset to this repo).
+- Scope: mice, social/dyadic behavior. Built on CalMS21 Task 1 only (CC BY 4.0 per its CaltechDATA record; we stay non-commercial regardless, cite the paper, never commit the raw dataset to this repo). MABe22 was dropped, see ARCHITECTURE.md for why.
 - Core task (must ship): classify known behaviors (supervised), then build the control-vs-treated comparison by running the classifier on each video separately and diffing behavior frequencies.
 - Stretch goal (only after the core works end to end): shift/anomaly detection against a learned baseline.
 - Product: both a per-video behavior timeline and a control-vs-treated comparison view.
