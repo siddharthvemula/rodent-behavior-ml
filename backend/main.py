@@ -15,18 +15,28 @@ same origin. (Flagging this prefix as a deliberate change to the original
 ARCHITECTURE.md contract, which didn't have it, see ARCHITECTURE.md for the
 updated version.)
 
-This is intentionally a skeleton: model inference is mocked so the frontend and
-the real /ml model can both build against this contract in parallel. Swap
-`run_predict_job` and `run_compare_job` for real calls into /ml once the model
-is ready. Do not change the response shape without updating ARCHITECTURE.md
-and flagging it to the team first.
+Model inference: if the uploaded file parses as the keypoints JSON contract
+(see ml/preprocess.py), this calls a real model (backend/ml_model/, a copy
+of ml/, see that package's docstring for why it's duplicated). That model
+is currently trained on SYNTHETIC data, not CalMS21/MABe22, it's a
+placeholder standing in for krishtotala105's real pipeline (issue #1), done
+Nov 17-18 to keep the team moving, not a replacement for that work. If the
+upload doesn't parse as keypoints (e.g. it's a raw video, no pose-extraction
+step exists yet), this falls back to the original hardcoded mock rather
+than pretending to classify something it can't. See ARCHITECTURE.md.
 """
+import sys
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Dict, List, Literal, Optional
 
 from fastapi import APIRouter, FastAPI, File, HTTPException, UploadFile
 from pydantic import BaseModel
+
+sys.path.insert(0, str(Path(__file__).parent))
+from ml_model.inference import compare_behaviors, predict_behaviors
+from ml_model.preprocess import KeypointsFormatError, parse_keypoints_json
 
 app = FastAPI(title="Rodent Behavior ML API")
 api = APIRouter(prefix="/api")
@@ -110,22 +120,33 @@ def _mock_compare_result() -> dict:
 
 @api.post("/predict", response_model=JobStatus)
 async def predict(file: UploadFile = File(...)):
-    await _read_and_validate(file, "file")
+    content = await _read_and_validate(file, "file")
     job_id = _new_job()
-    # Real version: enqueue a background task / worker that runs the /ml
-    # model on `file` and writes the result into jobs[job_id] when done.
+    # Real inference if this parses as keypoints; otherwise fall back to the
+    # mock rather than guess at a video file we have no pose-extraction for.
+    try:
+        frames, frame_rate = parse_keypoints_json(content)
+        result = predict_behaviors(frames, frame_rate)
+    except KeypointsFormatError:
+        result = _mock_predict_result()
     jobs[job_id]["status"] = "done"
-    jobs[job_id]["result"] = _mock_predict_result()
+    jobs[job_id]["result"] = result
     return JobStatus(job_id=job_id, status=jobs[job_id]["status"], result=jobs[job_id]["result"])
 
 
 @api.post("/compare", response_model=JobStatus)
 async def compare(control: UploadFile = File(...), treated: UploadFile = File(...)):
-    await _read_and_validate(control, "control")
-    await _read_and_validate(treated, "treated")
+    control_content = await _read_and_validate(control, "control")
+    treated_content = await _read_and_validate(treated, "treated")
     job_id = _new_job()
+    try:
+        control_frames, control_rate = parse_keypoints_json(control_content)
+        treated_frames, treated_rate = parse_keypoints_json(treated_content)
+        result = compare_behaviors(control_frames, treated_frames, control_rate, treated_rate)
+    except KeypointsFormatError:
+        result = _mock_compare_result()
     jobs[job_id]["status"] = "done"
-    jobs[job_id]["result"] = _mock_compare_result()
+    jobs[job_id]["result"] = result
     return JobStatus(job_id=job_id, status=jobs[job_id]["status"], result=jobs[job_id]["result"])
 
 

@@ -28,5 +28,8 @@ ARCHITECTURE.md
 Vercel Functions cap every request body at 4.5MB, with no way to raise it, this applies to `/api/predict` and `/api/compare` since they're Vercel Functions. The backend enforces a 4MB per-file limit (`MAX_UPLOAD_BYTES` in `backend/main.py`) and returns a clear 413 instead of a cryptic platform error. A pre-extracted keypoints file should comfortably fit; a raw video clip for the demo needs to be short/low-res enough to stay under this, or trimmed first. A `rodent-behavior-ml-blob` Vercel Blob store already exists for a proper fix (direct-to-Blob client uploads bypassing this limit entirely), but that needs a small token-minting endpoint and isn't required for Nov 28. Stretch goal if time allows, don't block on it.
 
 ## Data schema
-- Input: pose keypoints per frame (from the dataset's existing tracking, not re-derived).
+- Input: pose keypoints per frame (from the dataset's existing tracking, not re-derived). Day-one contract (see `ml/preprocess.py`): JSON `{"frame_rate": 30.0, "frames": [{"nose": [x,y], "center": [x,y], "tail_base": [x,y]}, ...]}`. Extend this if the real dataset needs more keypoints or a second animal, keep the top-level `{frame_rate, frames}` shape.
 - Output: timestamped behavior labels, confidence scores.
+
+## Model status (flagged Nov 17-18)
+The backend calls a real model (`backend/ml_model/`, scikit-learn, not yet the GRU/LSTM this doc originally called for) when the upload parses as the keypoints JSON above. That model is trained on synthetic generated data, not CalMS21/MABe22, it's a placeholder built to unblock backend/frontend integration while the real data/ML work (tracked in GitHub issue #1) was not yet started, not a replacement for it. A raw video upload still falls back to the original hardcoded mock, since there's no pose-extraction step from video to keypoints yet. See `ml/README.md` Status section for exactly what replacing it involves.
