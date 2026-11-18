@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# Node / React
+node_modules/
+dist/
+build/
+.next/
+
+# Environment & secrets
+.env
+.env.local
+*.pem
+
+# Data and model weights (never commit raw datasets or trained models)
+/data/raw/
+*.pt
+*.pth
+*.ckpt
+*.h5
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
