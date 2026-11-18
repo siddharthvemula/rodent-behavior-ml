@@ -53,4 +53,18 @@ describe('CompareView', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('timed out')
   })
+
+  it('switches between Summary and Detail without calling the backend again', async () => {
+    const compare = vi.fn<ApiClient['compare']>().mockResolvedValue(compareMock.result)
+    const { rerender } = render(<CompareView api={fakeApi(compare)} mode="summary" />)
+    await userEvent.upload(screen.getByLabelText(/control/i), control)
+    await userEvent.upload(screen.getByLabelText(/treated/i), treated)
+    await userEvent.click(screen.getByRole('button', { name: /compare/i }))
+    expect(await screen.findByRole('region', { name: /summary of control vs treated/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: /attacking rose from 5% to 20% of the time/i })).toBeInTheDocument()
+
+    rerender(<CompareView api={fakeApi(compare)} mode="detail" />)
+    expect(screen.getByRole('table', { name: /behavior frequency comparison/i })).toBeInTheDocument()
+    expect(compare).toHaveBeenCalledTimes(1)
+  })
 })

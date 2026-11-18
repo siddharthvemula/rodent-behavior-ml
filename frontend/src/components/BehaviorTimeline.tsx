@@ -1,5 +1,6 @@
 import type { BehaviorSegment } from '../api/types'
 import { buildColorMap, formatSeconds, summarizeTimeline } from '../lib/behaviors'
+import { TimelineRibbon } from './TimelineRibbon'
 
 interface BehaviorTimelineProps {
   readonly segments: readonly BehaviorSegment[]
@@ -12,9 +13,8 @@ export function BehaviorTimeline({ segments }: BehaviorTimelineProps) {
     return <p className="empty">No behaviors detected in this video.</p>
   }
 
-  const { duration, totals } = summarizeTimeline(segments)
+  const { totals } = summarizeTimeline(segments)
   const colors = buildColorMap(segments.map((s) => s.behavior_label))
-  const origin = Math.min(...segments.map((s) => s.start_time))
 
   return (
     <section className="result" aria-label="Predicted behavior timeline">
@@ -27,29 +27,7 @@ export function BehaviorTimeline({ segments }: BehaviorTimelineProps) {
         ))}
       </ul>
 
-      <div
-        className="timeline"
-        role="img"
-        aria-label={`Behavior timeline, ${formatSeconds(duration)} long: ${totals.map((t) => `${t.label} ${percent(t.share)}`).join(', ')}`}
-      >
-        {segments.map((s) => (
-          <div
-            key={`${s.start_time}-${s.behavior_label}`}
-            className="timeline__segment"
-            title={`${s.behavior_label} ${formatSeconds(s.start_time)}–${formatSeconds(s.end_time)} (${percent(s.confidence)})`}
-            style={{
-              left: percent((s.start_time - origin) / (duration || 1)),
-              width: percent((s.end_time - s.start_time) / (duration || 1)),
-              background: colors[s.behavior_label],
-              opacity: 0.45 + 0.55 * s.confidence,
-            }}
-          />
-        ))}
-      </div>
-      <div className="timeline__axis muted">
-        <span>{formatSeconds(origin)}</span>
-        <span>{formatSeconds(origin + duration)}</span>
-      </div>
+      <TimelineRibbon segments={segments} />
 
       <table className="data-table" aria-label="Predicted segments">
         <thead>

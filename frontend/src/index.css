@@ -15,6 +15,25 @@
   --warn-bg: #fffbeb;
   --warn-text: #92400e;
   --radius: 10px;
+  --radius-lg: 16px;
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 16px rgba(16, 24, 40, 0.05);
+
+  /* One color per behavior, used identically in the Summary and Detail views.
+     Picked from the dataviz palette and run through its validator
+     (all-pairs, both modes): attack / investigation / mount clear the
+     normal-vision floor (>= 15) and the colorblind target, `other` is the
+     neutral background class. Aqua is 2.8:1 on white, which the method allows
+     only because every value is also printed and the Detail view is the table. */
+  --beh-attack: #eb6834;
+  --beh-investigation: #2a78d6;
+  --beh-mount: #1baf7a;
+  --beh-other: #898781;
+  /* Fallbacks for any label outside the fixed vocabulary. */
+  --beh-extra-1: #eda100;
+  --beh-extra-2: #e87ba4;
+  --beh-extra-3: #6250d6;
+  --beh-extra-4: #008300;
+  --beh-extra-5: #e34948;
 
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   line-height: 1.5;
@@ -39,6 +58,16 @@
     --error-text: #fca5a5;
     --warn-bg: #2a2110;
     --warn-text: #fcd34d;
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+    --beh-attack: #d95926;
+    --beh-investigation: #3987e5;
+    --beh-mount: #199e70;
+    --beh-other: #898781;
+    --beh-extra-1: #c98500;
+    --beh-extra-2: #d55181;
+    --beh-extra-3: #9085e9;
+    --beh-extra-4: #0ca30c;
+    --beh-extra-5: #e66767;
   }
 }
 
@@ -51,7 +80,9 @@
 body {
   margin: 0;
   min-width: 320px;
-  background: var(--bg);
+  background:
+    radial-gradient(1100px 420px at 50% -180px, color-mix(in srgb, var(--accent) 9%, transparent), transparent),
+    var(--bg);
   color: var(--text);
 }
 

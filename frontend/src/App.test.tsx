@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from './App'
 
@@ -32,5 +32,17 @@ describe('App', () => {
     await userEvent.click(screen.getByRole('tab', { name: /timeline/i }))
     expect(input.files?.[0]?.name).toBe('kept.json')
     expect(screen.getByRole('button', { name: /predict behaviors/i })).toBeEnabled()
+  })
+
+  it('has a Summary/Detail toggle that starts on Summary and switches', async () => {
+    render(<App />)
+    const group = screen.getByRole('group', { name: /results view/i })
+    const summary = within(group).getByRole('button', { name: 'Summary' })
+    const detail = within(group).getByRole('button', { name: 'Detail' })
+    expect(summary).toHaveAttribute('aria-pressed', 'true')
+
+    await userEvent.click(detail)
+    expect(detail).toHaveAttribute('aria-pressed', 'true')
+    expect(summary).toHaveAttribute('aria-pressed', 'false')
   })
 })
