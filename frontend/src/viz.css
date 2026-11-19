@@ -1,0 +1,363 @@
+/* Detail-view figures: confidence lane, per-behavior breakdown, A-vs-B change chart.
+   Colors come from the behavior tokens and the control/treated tokens in index.css. */
+
+.viz-heading {
+  margin: 8px 0 2px;
+  font-size: 1rem;
+}
+.viz-sub {
+  margin: 0 0 10px;
+}
+
+/* ---------- hatching on uncertain ribbon segments ---------- */
+.timeline__segment.is-low::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(135deg, transparent 0 4px, color-mix(in srgb, var(--surface) 70%, transparent) 4px 6px);
+  pointer-events: none;
+}
+
+/* ---------- confidence lane ---------- */
+.conf-lane {
+  margin-top: 10px;
+}
+.conf-lane__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-bottom: 4px;
+}
+.conf-lane__title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.conf-lane__plot {
+  position: relative;
+  height: 56px;
+  margin-bottom: 14px; /* room for the time axis that follows */
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--border) 25%, transparent);
+  border-radius: 4px 4px 0 0;
+}
+.conf-lane__bar {
+  position: absolute;
+  bottom: 0;
+  height: var(--h);
+  min-width: 1px;
+  background: color-mix(in srgb, var(--beh) 80%, transparent);
+  border-radius: 2px 2px 0 0;
+  box-shadow: inset -1px 0 0 var(--surface); /* 1px gap between neighbours */
+}
+.conf-lane__bar.is-low {
+  background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--beh) 80%, transparent) 0 3px, transparent 3px 5px);
+  outline: 1px solid color-mix(in srgb, var(--beh) 80%, transparent);
+  outline-offset: -1px;
+}
+.conf-lane__bar.is-hover {
+  background: var(--beh);
+}
+.conf-lane__threshold {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed var(--text-muted);
+  opacity: 0.55;
+  pointer-events: none;
+}
+.conf-lane__key {
+  margin-left: auto;
+  white-space: nowrap;
+}
+.conf-lane__key-line {
+  display: inline-block;
+  width: 16px;
+  border-top: 1px dashed var(--text-muted);
+  vertical-align: middle;
+}
+.conf-lane__tip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 0.78rem;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ---------- per-behavior breakdown ---------- */
+.bout-stats {
+  margin-top: 8px;
+}
+.bout-stats__scroll {
+  overflow-x: auto;
+}
+.bout-stats__table {
+  min-width: 560px;
+}
+.bout-stats__dist-col {
+  width: 34%;
+  min-width: 160px;
+}
+.strip {
+  position: relative;
+  height: 20px;
+}
+.strip::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  border-radius: 1px;
+  background: var(--border);
+}
+.strip__low {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--text-muted) 10%, transparent) 0 3px, transparent 3px 6px);
+  border-radius: 3px 0 0 3px;
+}
+.strip__dot {
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: var(--beh);
+  opacity: 0.6;
+  box-shadow: 0 0 0 1px var(--surface);
+}
+.strip__dot.is-low {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--beh);
+  opacity: 0.9;
+}
+.strip__median {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--text);
+  border-radius: 1px;
+}
+.strip-axis {
+  position: relative;
+  height: 16px;
+}
+.strip-axis span {
+  position: absolute;
+  top: 2px;
+  transform: translateX(-50%);
+}
+.strip-axis span:first-child {
+  transform: none;
+}
+.strip-axis span:last-child {
+  transform: translateX(-100%);
+}
+.bout-stats__table tfoot td {
+  border-bottom: 0;
+  padding-top: 2px;
+}
+
+/* ---------- A vs B change chart (dumbbell) ---------- */
+.change {
+  margin: 0;
+  --change-name: 118px;
+  --change-delta: 64px;
+}
+.change__legend {
+  display: flex;
+  gap: 18px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+}
+.change__rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.change__row,
+.change__axis {
+  display: grid;
+  grid-template-columns: var(--change-name) 1fr var(--change-delta);
+  align-items: center;
+  gap: 12px;
+}
+.change__row {
+  min-height: 44px;
+  border-radius: 8px;
+  outline-offset: 2px;
+}
+.change__row:hover,
+.change__row:focus-visible {
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+}
+.change__name .swatch {
+  flex-shrink: 0;
+}
+.change__name {
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.change__row.is-standout .change__name {
+  font-weight: 700;
+}
+.change__plot {
+  position: relative;
+  height: 28px;
+}
+.change__grid {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border);
+  opacity: 0.7;
+}
+.change__link {
+  position: absolute;
+  top: 50%;
+  height: 4px;
+  margin-top: -2px;
+  border-radius: 2px;
+  background: var(--beh);
+  opacity: 0.55;
+}
+.change__dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  vertical-align: -1px;
+  margin-right: 6px;
+}
+.change__dot--control {
+  background: var(--control);
+}
+.change__dot--treated {
+  background: var(--treated);
+}
+.change__dot--abs {
+  position: absolute;
+  top: 50%;
+  margin: -7px 0 0 -7px;
+  width: 14px;
+  height: 14px;
+  box-shadow: 0 0 0 2px var(--surface); /* ring where dots overlap */
+}
+.change__dot--treated.change__dot--abs {
+  z-index: 1;
+}
+.change__delta {
+  font-size: 0.88rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.change__tip {
+  position: absolute;
+  bottom: calc(100% - 2px);
+  transform: translateX(-50%);
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 0.76rem;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+  z-index: 3;
+}
+.change__row:hover .change__tip,
+.change__row:focus-visible .change__tip {
+  opacity: 1;
+}
+.change__axis {
+  margin-top: 2px;
+}
+.change__axis-ticks {
+  position: relative;
+  height: 16px;
+}
+.change__axis-ticks span {
+  position: absolute;
+  transform: translateX(-50%);
+  font-variant-numeric: tabular-nums;
+}
+.change__axis-ticks span:first-child {
+  transform: none;
+}
+.change__axis-ticks span:last-child {
+  transform: translateX(-100%);
+}
+
+@media (max-width: 560px) {
+  .change {
+    --change-name: 100px;
+    --change-delta: 52px;
+  }
+  .change__name {
+    font-size: 0.84rem;
+  }
+  .change__row,
+  .change__axis {
+    gap: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .change__tip {
+    transition: none;
+  }
+}
+
+.change__unit {
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+/* linked highlight + standout (Summary) */
+.change__row {
+  transition: opacity 0.15s ease;
+}
+.change__row.is-dim {
+  opacity: 0.4;
+}
+.change__row.is-active {
+  background: color-mix(in srgb, var(--beh) 8%, transparent);
+}
+.change__name {
+  flex-wrap: wrap;
+}
+.change__name .badge {
+  margin: 2px 0 0 18px;
+  padding: 0 6px;
+  font-size: 0.58rem;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.change__row.is-standout .change__link {
+  opacity: 0.9;
+  height: 5px;
+  margin-top: -2.5px;
+}

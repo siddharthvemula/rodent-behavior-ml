@@ -8,6 +8,7 @@ import { TimelineView } from './views/TimelineView'
 import './App.css'
 import './summary.css'
 import './pharmacology.css'
+import './viz.css'
 
 // Loaded on demand so that, if its committed data file were ever malformed, only this tab fails
 // (caught by its ErrorBoundary) instead of the import error taking down the whole app.

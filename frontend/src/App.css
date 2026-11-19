@@ -370,14 +370,6 @@
   font-weight: 600;
 }
 
-.diff--up {
-  color: var(--up);
-}
-
-.diff--down {
-  color: var(--down);
-}
-
 .footnote {
   margin: 0;
   font-size: 0.8rem;
