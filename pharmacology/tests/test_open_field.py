@@ -1,3 +1,5 @@
+import json
+
 import numpy as np
 import pytest
 
@@ -77,3 +79,95 @@ def test_read_dlc_three_row_header(tmp_path):
     parts = of.read_dlc(p)
     assert set(parts) == {"tl", "bodycentre"}
     assert parts["bodycentre"].tolist() == [[3, 4, 0.5], [5, 6, 0.7]]
+
+
+# ---- malformed / degenerate input (HARDENING_PLAN.md D) ----
+
+def _dlc(tmp_path, text, name="x.csv"):
+    p = tmp_path / name
+    p.write_text(text)
+    return p
+
+
+GOOD_HEADER = (
+    "scorer,s,s,s\n"
+    "bodyparts,bodycentre,bodycentre,bodycentre\n"
+    "coords,x,y,likelihood\n"
+)
+
+
+@pytest.mark.parametrize(
+    "text, message",
+    [
+        ("", "need 3 header rows"),
+        (GOOD_HEADER, "need 3 header rows"),
+        ("a,b,c\n1,2,3\n", "need 3 header rows"),
+        ("scorer,s\nbodyparts,bodycentre\ncoords,x\n0,1\n", "x, y, likelihood"),
+        (GOOD_HEADER + "0,1,2,0.9\n1,2,3\n", "line 5 has 3 columns"),
+        (GOOD_HEADER + "0,1,,0.9\n", "non-numeric or empty"),
+    ],
+)
+def test_read_dlc_rejects_malformed_files_with_file_name_and_reason(tmp_path, text, message):
+    with pytest.raises(ValueError, match=message) as e:
+        of.read_dlc(_dlc(tmp_path, text, "bad.csv"))
+    assert "bad.csv" in str(e.value)
+
+
+def test_read_dlc_accepts_nan_cells(tmp_path):
+    parts = of.read_dlc(_dlc(tmp_path, GOOD_HEADER + "0,nan,2,0.9\n1,3,4,0.9\n"))
+    assert np.isnan(parts["bodycentre"][0, 0])
+
+
+def test_missing_corner_or_bodypart_is_a_clear_error():
+    parts = parts_for(line(10))
+    del parts["bl"]
+    with pytest.raises(ValueError, match="missing arena corner markers: bl"):
+        of.compute_metrics(parts)
+    parts = parts_for(line(10))
+    del parts[of.BODY_PART]
+    with pytest.raises(ValueError, match="bodycentre"):
+        of.compute_metrics(parts)
+
+
+def test_collinear_corners_are_a_clear_error():
+    with pytest.raises(ValueError, match="collinear"):
+        of.compute_metrics(parts_for(line(10), corners=((0, 0), (100, 0), (200, 0), (300, 0))))
+
+
+def test_all_low_likelihood_or_single_frame_raises_instead_of_returning_nan():
+    with pytest.raises(ValueError, match="usable frames"):
+        of.compute_metrics(parts_for(line(20), lik=np.full(20, 0.1)))
+    with pytest.raises(ValueError, match="usable frames"):
+        of.compute_metrics(parts_for(line(1)))
+
+
+def test_valid_metrics_are_all_finite():
+    m = of.compute_metrics(parts_for(line(20)))
+    assert all(np.isfinite(v) for v in m.values())
+
+
+def _write_dataset(root, n_frames, likelihood):
+    (root / "data" / "Yohimbine_Roche").mkdir(parents=True)
+    (root / "METADATA_ROCHE.csv").write_text("Animal ID;Dosage;DLC file\nm1;0;m1.csv\n", encoding="utf-8-sig")
+    header = (
+        "scorer," + ",".join(["s"] * 15) + "\n"
+        "bodyparts," + ",".join(f"{p},{p},{p}" for p in ("tl", "tr", "bl", "br", "bodycentre")) + "\n"
+        "coords," + ",".join("x,y,likelihood" for _ in range(5)) + "\n"
+    )
+    rows = []
+    for i in range(n_frames):
+        pts = [(0, 0), (400, 0), (0, 400), (400, 400), (100 + 2 * i, 200)]
+        rows.append(f"{i}," + ",".join(f"{x},{y},{1.0 if k < 4 else likelihood[i]}" for k, (x, y) in enumerate(pts)))
+    (root / "data" / "Yohimbine_Roche" / "m1.csv").write_text(header + "\n".join(rows) + "\n")
+
+
+def test_build_names_the_animal_and_enforces_min_valid_fraction(tmp_path):
+    _write_dataset(tmp_path, 40, [1.0] * 40)
+    out = of.build(tmp_path)
+    assert out["mice"][0]["id"] == "m1"
+    json.dumps(out, allow_nan=False)                       # finite: safe to ship
+
+    bad = tmp_path / "bad"
+    _write_dataset(bad, 40, [1.0] * 10 + [0.1] * 30)       # only 25% usable (long gap, not interpolated)
+    with pytest.raises(ValueError, match=r"animal m1 \(m1\.csv\).*usable"):
+        of.build(bad)

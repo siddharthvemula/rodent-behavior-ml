@@ -23,33 +23,54 @@ package's docstring for why it's duplicated). Labels are attack /
 investigation / mount / other.
 
 Uploads that aren't valid keypoints JSON are rejected, never answered with
-made-up results:
+made-up results (all checks live in validation.py, see HARDENING_PLAN.md):
   * JSON that is clearly an attempt at keypoints (has a "frames" key) but
-    doesn't match the contract gets a 422 with the reason.
-  * Anything else (e.g. a raw video, which we can't classify because no
-    pose-extraction step exists yet) gets a 415.
+    is unusable (bad schema, too short, long tracking gaps, ...) gets a 422
+    with the reason and location.
+  * Anything else (a raw video, CSV or raw CalMS21 file, which we can't
+    classify) gets a 415.
+Short tracking gaps are repaired and reported in the job's `warnings`.
 """
-import json
+import logging
 import sys
 import uuid
+from collections import OrderedDict
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Literal, Optional
 
 from fastapi import APIRouter, FastAPI, File, HTTPException, UploadFile
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 sys.path.insert(0, str(Path(__file__).parent))
-from ml_model.inference import compare_behaviors, predict_behaviors
-from ml_model.preprocess import KeypointsFormatError, parse_keypoints_json
+from ml_model.inference import _get_model, compare_behaviors, predict_behaviors
+from validation import Recording, UploadRejected, oversized_hint, validate_recording
 
-app = FastAPI(title="Rodent Behavior ML API")
+logger = logging.getLogger("rodent-api")
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # Load the model up front so a broken install shows in the logs and on
+    # /api/health at startup, not on the first demo click. Non-fatal: the
+    # request path still retries lazily.
+    try:
+        _get_model()
+    except Exception:
+        logger.exception("model failed to load at startup")
+    yield
+
+
+app = FastAPI(title="Rodent Behavior ML API", lifespan=lifespan)
 api = APIRouter(prefix="/api")
 
 # In-memory job store. Fine for local dev and the Nov 28 demo; replace with a
 # real queue/db (e.g. Redis, a Postgres table) before this needs to survive
 # a server restart or run on more than one instance.
-jobs: Dict[str, dict] = {}
+jobs: "OrderedDict[str, dict]" = OrderedDict()
+MAX_JOBS = 100  # oldest finished jobs are evicted so memory stays bounded
 
 # Vercel Functions hard-cap every request body at 4.5MB with no way to raise
 # it (confirmed against Vercel's own docs, Nov 17). We stay under that with
@@ -61,20 +82,29 @@ jobs: Dict[str, dict] = {}
 MAX_UPLOAD_BYTES = 4 * 1024 * 1024  # 4 MiB
 
 
-async def _read_and_validate(file: UploadFile, field_name: str) -> bytes:
-    content = await file.read()
+def _read_and_validate(file: UploadFile, label: str) -> bytes:
+    # Read at most limit+1 bytes: enough to detect "too big" without holding a huge upload in memory.
+    content = file.file.read(MAX_UPLOAD_BYTES + 1)
     if len(content) == 0:
-        raise HTTPException(status_code=400, detail=f"'{field_name}' is empty")
+        raise HTTPException(status_code=400, detail=f"'{label}' is empty")
     if len(content) > MAX_UPLOAD_BYTES:
         raise HTTPException(
             status_code=413,
             detail=(
-                f"'{field_name}' is {len(content)} bytes, over the "
-                f"{MAX_UPLOAD_BYTES} byte limit for this deployment. "
-                "Trim the clip or use a pre-extracted keypoints file instead."
+                f"'{label}' is over the {MAX_UPLOAD_BYTES // (1024 * 1024)} MiB limit for this deployment. "
+                "Trim the clip or use a pre-extracted keypoints file instead (about 3.5 minutes of "
+                f"compact keypoints JSON fits).{oversized_hint(content)}"
             ),
         )
     return content
+
+
+def _validate(file: UploadFile, label: str) -> Recording:
+    content = _read_and_validate(file, label)
+    try:
+        return validate_recording(content, label)
+    except UploadRejected as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
 
 class BehaviorSegment(BaseModel):
@@ -94,6 +124,9 @@ class JobStatus(BaseModel):
     job_id: str
     status: Literal["queued", "running", "done", "failed"]
     result: Optional[List[BehaviorSegment] | CompareResult] = None
+    # Additive fields (HARDENING_PLAN.md): older clients simply ignore them.
+    warnings: List[str] = []
+    durations: Optional[Dict[str, float]] = None  # compare only: {"control": s, "treated": s}
 
 
 def _new_job() -> str:
@@ -101,77 +134,79 @@ def _new_job() -> str:
     jobs[job_id] = {
         "status": "queued",
         "result": None,
+        "warnings": [],
+        "durations": None,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
+    while len(jobs) > MAX_JOBS:
+        jobs.popitem(last=False)
     return job_id
 
 
-def _looks_like_keypoints_attempt(content: bytes) -> bool:
-    """True if the upload is JSON that was clearly meant to be a keypoints
-    file (an object with a "frames" key), as opposed to e.g. a video."""
-    try:
-        data = json.loads(content)
-    except (ValueError, UnicodeDecodeError):
-        return False
-    return isinstance(data, dict) and "frames" in data
+def _status(job_id: str) -> JobStatus:
+    job = jobs[job_id]
+    return JobStatus(
+        job_id=job_id,
+        status=job["status"],
+        result=job["result"],
+        warnings=job["warnings"],
+        durations=job["durations"],
+    )
 
 
-def _parse_keypoints(content: bytes, field_name: str):
-    """Returns (keypoints, frame_rate) or raises: 422 for keypoints JSON that
-    doesn't match the schema (with the reason), 415 for anything that isn't
-    keypoints JSON at all (e.g. a raw video, which we can't classify yet)."""
+def _run_job(job_id: str, fn, *args):
+    """Run inference; on any failure mark the job failed and answer with a
+    clean JSON 500 instead of leaving a job stuck in 'queued'."""
+    jobs[job_id]["status"] = "running"
     try:
-        return parse_keypoints_json(content)
-    except KeypointsFormatError as exc:
-        if _looks_like_keypoints_attempt(content):
-            raise HTTPException(
-                status_code=422,
-                detail=f"'{field_name}' is not a valid keypoints file: {exc}. See ARCHITECTURE.md 'Data schema'.",
-            ) from exc
+        jobs[job_id]["result"] = fn(*args)
+    except Exception:
+        logger.exception("inference failed for job %s", job_id)
+        jobs[job_id]["status"] = "failed"
         raise HTTPException(
-            status_code=415,
-            detail=(
-                f"'{field_name}' is not a keypoints JSON file ({exc}). Only pre-extracted pose "
-                "keypoints are supported; raw video can't be classified yet. See ARCHITECTURE.md 'Data schema'."
-            ),
-        ) from exc
-
-
-@api.post("/predict", response_model=JobStatus)
-async def predict(file: UploadFile = File(...)):
-    content = await _read_and_validate(file, "file")
-    keypoints, frame_rate = _parse_keypoints(content, "file")
-    job_id = _new_job()
-    result = predict_behaviors(keypoints, frame_rate)
+            status_code=500,
+            detail="The classifier failed on this recording. Check that it is a valid CalMS21-style keypoints file.",
+        ) from None
     jobs[job_id]["status"] = "done"
-    jobs[job_id]["result"] = result
-    return JobStatus(job_id=job_id, status=jobs[job_id]["status"], result=jobs[job_id]["result"])
+
+
+# Plain `def` (not async): inference is CPU-bound and synchronous, so FastAPI
+# runs these in its threadpool instead of blocking the event loop.
+@api.post("/predict", response_model=JobStatus)
+def predict(file: UploadFile = File(...)):
+    rec = _validate(file, "file")
+    job_id = _new_job()
+    jobs[job_id]["warnings"] = rec.warnings
+    _run_job(job_id, predict_behaviors, rec.keypoints, rec.frame_rate)
+    return _status(job_id)
 
 
 @api.post("/compare", response_model=JobStatus)
-async def compare(control: UploadFile = File(...), treated: UploadFile = File(...)):
-    control_content = await _read_and_validate(control, "control")
-    treated_content = await _read_and_validate(treated, "treated")
-    control_kp, control_rate = _parse_keypoints(control_content, "control")
-    treated_kp, treated_rate = _parse_keypoints(treated_content, "treated")
+def compare(control: UploadFile = File(...), treated: UploadFile = File(...)):
+    a = _validate(control, "Recording A (control)")
+    b = _validate(treated, "Recording B (treated)")
     job_id = _new_job()
-    result = compare_behaviors(control_kp, treated_kp, control_rate, treated_rate)
-    jobs[job_id]["status"] = "done"
-    jobs[job_id]["result"] = result
-    return JobStatus(job_id=job_id, status=jobs[job_id]["status"], result=jobs[job_id]["result"])
+    jobs[job_id]["warnings"] = [f"Recording A: {w}" for w in a.warnings] + [f"Recording B: {w}" for w in b.warnings]
+    jobs[job_id]["durations"] = {"control": round(a.duration, 2), "treated": round(b.duration, 2)}
+    _run_job(job_id, compare_behaviors, a.keypoints, b.keypoints, a.frame_rate, b.frame_rate)
+    return _status(job_id)
 
 
 @api.get("/jobs/{job_id}", response_model=JobStatus)
-async def get_job(job_id: str):
-    job = jobs.get(job_id)
-    if job is None:
+def get_job(job_id: str):
+    if job_id not in jobs:
         raise HTTPException(status_code=404, detail="job not found")
-    return JobStatus(job_id=job_id, status=job["status"], result=job["result"])
+    return _status(job_id)
 
 
 @api.get("/health")
-async def health():
-    return {"status": "ok"}
+def health():
+    try:
+        _get_model()
+    except Exception as exc:
+        logger.exception("health check: model not loadable")
+        return JSONResponse(status_code=503, content={"status": "error", "model_loaded": False, "detail": str(exc)})
+    return {"status": "ok", "model_loaded": True}
 
 
 app.include_router(api)

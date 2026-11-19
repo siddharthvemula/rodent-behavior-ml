@@ -25,6 +25,10 @@ ARCHITECTURE.md
 - `GET /api/jobs/{job_id}` — poll until `status` is `done` or `failed`.
 - Inference runs as a background job, not inline in the request (Vercel functions time out on long-running work).
 
+**Job envelope (additive fields, Nov 18 hardening, see `HARDENING_PLAN.md`):** every job response may also carry `warnings: string[]` (things the backend repaired or finds suspicious about an upload; empty when clean) and, for compare jobs, `durations: {control, treated}` in seconds. Older clients ignore both. Errors are JSON `{detail: string}`: 400 empty file, 413 over the size limit, 415 not keypoints JSON (video, CSV, raw CalMS21), 422 keypoints JSON that is unusable (reason and location in `detail`), 500 classifier failure (job marked `failed`). `GET /api/health` returns `{status, model_loaded}`, 503 if the model cannot load.
+
+**Upload validation rules** (all in `backend/validation.py`, the model code is untouched): recording at least 3 s and at most 20,000 frames; `frame_rate` 10 to 500 fps (default 30 with a warning); coordinates must be numbers or `null` (a missing point), magnitude at most 1e5; missing points in gaps of up to 5 frames are interpolated (warning), longer gaps are rejected; recordings with no movement are rejected; implausible scale (median nose-to-tail outside 90 to 300 px warns, outside 20 to 800 px rejects) and (0,0) dropout markers warn.
+
 ## Known limit: upload size (flagged Nov 17)
 Vercel Functions cap every request body at 4.5MB, with no way to raise it, this applies to `/api/predict` and `/api/compare` since they're Vercel Functions. The backend enforces a 4MB per-file limit (`MAX_UPLOAD_BYTES` in `backend/main.py`) and returns a clear 413 instead of a cryptic platform error. A keypoints file should fit comfortably: a 100 s clip (3,000 frames) is ~1.9 MB (`python ml/export_clip.py` makes them from CalMS21). A `rodent-behavior-ml-blob` Vercel Blob store already exists for a proper fix (direct-to-Blob client uploads bypassing this limit entirely), but that needs a small token-minting endpoint and isn't required for Nov 28. Stretch goal if time allows, don't block on it.
 

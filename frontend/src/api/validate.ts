@@ -1,4 +1,11 @@
-import type { BehaviorFrequencies, BehaviorSegment, CompareResult, JobState, JobStatus } from './types'
+import type {
+  BehaviorFrequencies,
+  BehaviorSegment,
+  CompareResult,
+  JobState,
+  JobStatus,
+  RecordingDurations,
+} from './types'
 
 // Responses from the backend are untrusted input: validate them against the
 // ARCHITECTURE.md contract before the UI renders anything.
@@ -22,10 +29,26 @@ function isFiniteNumber(value: unknown): value is number {
 
 export function parseJobStatus(raw: unknown): JobStatus<unknown> {
   if (!isRecord(raw)) throw new ContractError('job status is not an object')
-  const { job_id, status, result } = raw
+  const { job_id, status, result, warnings, durations } = raw
   if (typeof job_id !== 'string' || job_id.length === 0) throw new ContractError('missing job_id')
   if (!JOB_STATES.includes(status as JobState)) throw new ContractError(`unknown job status "${String(status)}"`)
-  return { job_id, status: status as JobState, result: result ?? null }
+  return {
+    job_id,
+    status: status as JobState,
+    result: result ?? null,
+    warnings: parseWarnings(warnings),
+    durations: parseDurations(durations),
+  }
+}
+
+// `warnings` and `durations` are additive fields: an older backend omits them, so absent is fine.
+function parseWarnings(raw: unknown): readonly string[] {
+  return Array.isArray(raw) ? raw.filter((w): w is string => typeof w === 'string' && w.length > 0) : []
+}
+
+function parseDurations(raw: unknown): RecordingDurations | null {
+  if (!isRecord(raw) || !isFiniteNumber(raw.control) || !isFiniteNumber(raw.treated)) return null
+  return { control: raw.control, treated: raw.treated }
 }
 
 function parseSegment(raw: unknown, index: number): BehaviorSegment {
