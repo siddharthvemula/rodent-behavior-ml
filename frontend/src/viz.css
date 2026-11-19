@@ -316,6 +316,9 @@
     --change-name: 100px;
     --change-delta: 52px;
   }
+  .change--ranges {
+    --change-delta: 80px;
+  }
   .change__name {
     font-size: 0.84rem;
   }
@@ -360,4 +363,185 @@
   opacity: 0.9;
   height: 5px;
   margin-top: -2.5px;
+}
+
+/* ---------- bootstrap ranges ---------- */
+.change__whisker {
+  position: absolute;
+  top: 50%;
+  height: 3px;
+  margin-top: -1.5px;
+  border-radius: 2px;
+  opacity: 0.5;
+}
+.change__whisker::before,
+.change__whisker::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: inherit;
+  border-radius: 1px;
+}
+.change__whisker::before {
+  left: 0;
+}
+.change__whisker::after {
+  right: 0;
+}
+.change__whisker--control {
+  background: var(--control);
+}
+.change__whisker--treated {
+  background: var(--treated);
+}
+.change__verdict {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+}
+.change__verdict.is-beyond {
+  color: var(--text);
+}
+.change__verdict.is-beyond::before {
+  content: '● ';
+  font-size: 0.6rem;
+}
+.change__verdict.is-within::before {
+  content: '○ ';
+  font-size: 0.6rem;
+}
+.change__note {
+  margin: 10px 0 0;
+  max-width: 78ch;
+}
+.change--ranges {
+  --change-delta: 92px;
+}
+
+/* ---------- "How much to trust this" ---------- */
+.trust {
+  margin-top: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--text) 2.5%, var(--surface));
+}
+.trust summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  list-style: none;
+}
+.trust summary::-webkit-details-marker {
+  display: none;
+}
+.trust summary::before {
+  content: '▸';
+  color: var(--text-muted);
+  transition: transform 0.15s ease;
+}
+.trust[open] summary::before {
+  transform: rotate(90deg);
+}
+.trust summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: var(--radius);
+}
+.trust__title {
+  font-weight: 600;
+}
+.trust__body {
+  display: grid;
+  gap: 18px;
+  padding: 4px 14px 14px;
+}
+.trust__callout {
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-radius: 0 6px 6px 0;
+  font-size: 0.9rem;
+}
+.trust__bar-col {
+  width: 48%;
+}
+.trust__table tr.is-highlight th,
+.trust__table tr.is-highlight td {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.meter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.meter__track {
+  position: relative;
+  flex: 1;
+  height: 14px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--border) 60%, transparent);
+  overflow: hidden;
+}
+.meter__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: color-mix(in srgb, var(--beh) 80%, transparent);
+  border-radius: 4px;
+}
+.meter__value {
+  min-width: 2.4em;
+  font-size: 0.84rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.matrix-wrap {
+  position: relative;
+  overflow-x: auto;
+}
+.matrix {
+  border-collapse: separate;
+  border-spacing: 2px;
+  font-size: 0.84rem;
+  font-variant-numeric: tabular-nums;
+}
+.matrix th {
+  padding: 4px 8px;
+  font-weight: 600;
+  text-align: left;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.matrix thead th {
+  text-align: center;
+}
+.matrix .matrix__axis {
+  font-weight: 500;
+  font-size: 0.78rem;
+}
+.matrix tbody td {
+  min-width: 64px;
+  padding: 8px 6px;
+  text-align: center;
+  border-radius: 4px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) calc(var(--v) * 60%), var(--surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--border) 70%, transparent);
+}
+.matrix tbody td.is-diag {
+  font-weight: 700;
+}
+.matrix__side {
+  margin: 4px 0 0;
+}
+.trust__foot {
+  margin: 0;
+  max-width: 78ch;
 }

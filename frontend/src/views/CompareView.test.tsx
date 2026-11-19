@@ -26,7 +26,7 @@ describe('CompareView', () => {
   })
 
   it('sends recording A then B and renders a side-by-side comparison', async () => {
-    const compare = vi.fn<ApiClient['compare']>().mockResolvedValue({ result: compareMock.result, warnings: [], durations: null })
+    const compare = vi.fn<ApiClient['compare']>().mockResolvedValue({ result: compareMock.result, warnings: [], durations: null, intervals: null })
     render(<CompareView api={fakeApi(compare)} />)
 
     await userEvent.upload(screen.getByLabelText(/recording a/i), control)
@@ -55,7 +55,7 @@ describe('CompareView', () => {
   })
 
   it('switches between Summary and Detail without calling the backend again', async () => {
-    const compare = vi.fn<ApiClient['compare']>().mockResolvedValue({ result: compareMock.result, warnings: [], durations: null })
+    const compare = vi.fn<ApiClient['compare']>().mockResolvedValue({ result: compareMock.result, warnings: [], durations: null, intervals: null })
     const { rerender } = render(<CompareView api={fakeApi(compare)} mode="summary" />)
     await userEvent.upload(screen.getByLabelText(/recording a/i), control)
     await userEvent.upload(screen.getByLabelText(/recording b/i), treated)
@@ -71,7 +71,7 @@ describe('CompareView', () => {
   it('shows both recording lengths and a caution when they differ a lot', async () => {
     const compare = vi
       .fn<ApiClient['compare']>()
-      .mockResolvedValue({ result: compareMock.result, warnings: ['Recording A: Short recording (5.0 s)'], durations: { control: 5, treated: 200 } })
+      .mockResolvedValue({ result: compareMock.result, warnings: ['Recording A: Short recording (5.0 s)'], durations: { control: 5, treated: 200 }, intervals: null })
     render(<CompareView api={fakeApi(compare)} />)
     await userEvent.upload(screen.getByLabelText(/recording a/i), control)
     await userEvent.upload(screen.getByLabelText(/recording b/i), treated)
@@ -87,7 +87,7 @@ describe('CompareView', () => {
   it('does not caution about comparable recordings', async () => {
     const compare = vi
       .fn<ApiClient['compare']>()
-      .mockResolvedValue({ result: compareMock.result, warnings: [], durations: { control: 60, treated: 90 } })
+      .mockResolvedValue({ result: compareMock.result, warnings: [], durations: { control: 60, treated: 90 }, intervals: null })
     render(<CompareView api={fakeApi(compare)} />)
     await userEvent.upload(screen.getByLabelText(/recording a/i), control)
     await userEvent.upload(screen.getByLabelText(/recording b/i), treated)

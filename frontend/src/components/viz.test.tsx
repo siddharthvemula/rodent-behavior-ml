@@ -1,12 +1,13 @@
 import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import type { BehaviorSegment, CompareResult } from '../api/types'
+import type { BehaviorSegment, CompareIntervals, CompareResult } from '../api/types'
 import { BehaviorTimeline } from './BehaviorTimeline'
 import { BoutStats } from './BoutStats'
 import { ChangeChart } from './ChangeChart'
 import { ComparisonChart } from './ComparisonChart'
 import { CompareSummary } from './CompareSummary'
 import { ConfidenceLane } from './ConfidenceLane'
+import { ModelTrust } from './ModelTrust'
 
 const seg = (start: number, end: number, label: string, confidence: number): BehaviorSegment => ({
   start_time: start,
@@ -91,5 +92,71 @@ describe('placement', () => {
 
     render(<CompareSummary result={compare} />)
     expect(screen.getByRole('figure', { name: /change from recording a/i })).toBeInTheDocument()
+  })
+})
+
+describe('bootstrap ranges', () => {
+  const intervals: CompareIntervals = {
+    level: 0.95,
+    control: { attack: [0, 0.12], investigation: [0.22, 0.48], mount: [0.03, 0.19], other: [0.38, 0.62] },
+    treated: { attack: [0.09, 0.33], investigation: [0.18, 0.43], mount: [0, 0.12], other: [0.33, 0.57] },
+    difference: { attack: [0.02, 0.28], investigation: [-0.24, 0.14], mount: [-0.17, 0.06], other: [-0.24, 0.13] },
+  }
+
+  it('marks differences beyond noise vs within noise, in the accessible name too', () => {
+    render(<ChangeChart result={compare} intervals={intervals} />)
+    expect(screen.getByLabelText(/^Attack:.*95% range for the difference \+2 to \+28 pts, beyond noise/)).toBeInTheDocument()
+    expect(screen.getByLabelText(/^Investigation:.*−24 to \+14 pts, within noise/)).toBeInTheDocument()
+    expect(document.querySelectorAll('.change__whisker')).toHaveLength(8)
+  })
+
+  it('is honest that the ranges do not show two groups differ', () => {
+    render(<ChangeChart result={compare} intervals={intervals} />)
+    expect(screen.getByText(/does not show that two animals or groups differ/i)).toBeInTheDocument()
+  })
+
+  it('draws nothing extra without intervals', () => {
+    render(<ChangeChart result={compare} />)
+    expect(document.querySelector('.change__whisker, .change__verdict, .change__note')).toBeNull()
+  })
+
+  it('adds a range column to the Detail table', () => {
+    render(<ComparisonChart result={compare} intervals={intervals} />)
+    expect(screen.getByRole('columnheader', { name: '95% range of difference' })).toBeInTheDocument()
+    expect(screen.getByText('+2 to +28 pts')).toBeInTheDocument()
+  })
+})
+
+describe('ModelTrust', () => {
+  it('is collapsed by default but states the headline in its summary', () => {
+    render(<ModelTrust />)
+    expect(screen.getByText(/tested on 19 recordings the model never saw/i)).toBeInTheDocument()
+    expect(document.querySelector('details')).not.toHaveAttribute('open')
+  })
+
+  it('shows F1 and time-share error for every behavior and a 4x4 confusion matrix', () => {
+    render(<ModelTrust />)
+    const rows = within(screen.getByRole('region', { name: /score and time-share error/i })).getAllByRole('row')
+    expect(rows).toHaveLength(5)
+    expect(within(rows[1]).getByRole('rowheader')).toHaveTextContent('Attack')
+    expect(rows[1].textContent).toMatch(/0\.82/)
+    const matrix = screen.getByRole('table', { name: /confusion matrix/i })
+    expect(within(matrix).getAllByRole('row')).toHaveLength(6) // 2 header rows + 4
+    // attack row: 11098 of 12630 frames were called attack
+    expect(within(matrix).getAllByRole('row')[2]).toHaveTextContent('88%')
+  })
+
+  it('calls out the highlighted behavior and admits its limits', () => {
+    render(<ModelTrust highlight="attack" />)
+    expect(screen.getByText(/this result is about/i)).toHaveTextContent(/attack\. The model scored 0\.82/)
+    expect(screen.getByText(/one lab's setup/i)).toBeInTheDocument()
+  })
+
+  it('appears in both Detail views', () => {
+    const t = render(<BehaviorTimeline segments={segments} />)
+    expect(screen.getByText('How much to trust this')).toBeInTheDocument()
+    t.unmount()
+    render(<ComparisonChart result={compare} />)
+    expect(screen.getByText(/this result is about/i)).toHaveTextContent(/attack/i)
   })
 })

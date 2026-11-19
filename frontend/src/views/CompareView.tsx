@@ -87,10 +87,10 @@ export function CompareView({ api = defaultApi, mode = 'detail', onShowDetail }:
         <div key={mode} className="mode-enter">
           <CompareNotes outcome={state.data} />
           {mode === 'summary' ? (
-            <CompareSummary result={state.data.result} onShowDetail={onShowDetail} />
+            <CompareSummary result={state.data.result} intervals={state.data.intervals} onShowDetail={onShowDetail} />
           ) : (
             <div className="card">
-              <ComparisonChart result={state.data.result} />
+              <ComparisonChart result={state.data.result} intervals={state.data.intervals} />
             </div>
           )}
         </div>

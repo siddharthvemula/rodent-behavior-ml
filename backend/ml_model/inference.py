@@ -71,11 +71,15 @@ def predict_behaviors(keypoints: np.ndarray, frame_rate: float = FRAME_RATE) -> 
     return segments
 
 
+def _frequencies_from_labels(labels: np.ndarray) -> Dict[str, float]:
+    counts = np.bincount(labels, minlength=len(BEHAVIOR_LABELS))
+    return {name: round(float(c) / len(labels), 2) for name, c in zip(BEHAVIOR_LABELS, counts)}
+
+
 def behavior_frequencies(keypoints: np.ndarray, frame_rate: float = FRAME_RATE) -> Dict[str, float]:
     """Fraction of the recording spent in each of the four behaviors."""
     labels, _ = predict_frames(keypoints, frame_rate)
-    counts = np.bincount(labels, minlength=len(BEHAVIOR_LABELS))
-    return {name: round(float(c) / len(labels), 2) for name, c in zip(BEHAVIOR_LABELS, counts)}
+    return _frequencies_from_labels(labels)
 
 
 def compare_behaviors(
@@ -86,7 +90,70 @@ def compare_behaviors(
 ) -> dict:
     """Run the classifier on each recording separately and diff the behavior
     frequencies (treated minus control)."""
-    control_freq = behavior_frequencies(control, control_frame_rate)
-    treated_freq = behavior_frequencies(treated, treated_frame_rate)
+    return compare_with_intervals(control, treated, control_frame_rate, treated_frame_rate)[0]
+
+
+# ---- uncertainty (additive: the compare result itself is unchanged) ----
+
+BOOTSTRAP_REPLICATES = 500
+BOOTSTRAP_BLOCK_SECONDS = 10.0
+INTERVAL_LEVEL = 0.95
+
+
+def bootstrap_frequencies(labels: np.ndarray, rng: np.random.Generator) -> np.ndarray:
+    """Circular block bootstrap of one recording's per-frame labels.
+
+    Neighbouring frames are almost always the same label (bouts last seconds),
+    so resampling single frames would claim far more certainty than the clip
+    supports. Resampling whole ~10 s blocks keeps that dependence. Returns
+    (BOOTSTRAP_REPLICATES, n_behaviors) resampled label fractions.
+
+    What this measures: how stable this one clip's behavior fractions are
+    against which stretches happened to be sampled. It is NOT a test of
+    whether two animals or groups differ.
+    """
+    n = len(labels)
+    n_labels = len(BEHAVIOR_LABELS)
+    block = int(max(1, min(round(BOOTSTRAP_BLOCK_SECONDS * FRAME_RATE), n // 4 or 1)))
+    n_blocks = int(np.ceil(n / block))
+    # prefix[i] = per-label frame counts in doubled[:i]; the doubling makes blocks wrap around.
+    onehot = np.eye(n_labels, dtype=np.int64)[np.concatenate([labels, labels])]
+    prefix = np.vstack([np.zeros((1, n_labels), dtype=np.int64), np.cumsum(onehot, axis=0)])
+    starts = rng.integers(0, n, size=(BOOTSTRAP_REPLICATES, n_blocks))
+    counts = (prefix[starts + block] - prefix[starts]).sum(axis=1)
+    return counts / (n_blocks * block)
+
+
+def _interval(samples: np.ndarray) -> List[float]:
+    tail = (1 - INTERVAL_LEVEL) / 2 * 100
+    lo, hi = np.percentile(samples, [tail, 100 - tail])
+    return [round(float(lo), 3), round(float(hi), 3)]
+
+
+def compare_with_intervals(
+    control: np.ndarray,
+    treated: np.ndarray,
+    control_frame_rate: float = FRAME_RATE,
+    treated_frame_rate: float = FRAME_RATE,
+) -> Tuple[dict, dict]:
+    """compare_behaviors' result plus 95% bootstrap intervals for each
+    recording's frequencies and for their difference (treated minus control).
+    Deterministic: the bootstrap uses a fixed seed."""
+    control_labels, _ = predict_frames(control, control_frame_rate)
+    treated_labels, _ = predict_frames(treated, treated_frame_rate)
+    control_freq = _frequencies_from_labels(control_labels)
+    treated_freq = _frequencies_from_labels(treated_labels)
     difference = {k: round(treated_freq[k] - control_freq[k], 2) for k in BEHAVIOR_LABELS}
-    return {"control": control_freq, "treated": treated_freq, "difference": difference}
+    result = {"control": control_freq, "treated": treated_freq, "difference": difference}
+
+    rng = np.random.default_rng(0)
+    control_boot = bootstrap_frequencies(control_labels, rng)
+    treated_boot = bootstrap_frequencies(treated_labels, rng)
+    diff_boot = treated_boot - control_boot
+    intervals = {
+        "level": INTERVAL_LEVEL,
+        "control": {k: _interval(control_boot[:, i]) for i, k in enumerate(BEHAVIOR_LABELS)},
+        "treated": {k: _interval(treated_boot[:, i]) for i, k in enumerate(BEHAVIOR_LABELS)},
+        "difference": {k: _interval(diff_boot[:, i]) for i, k in enumerate(BEHAVIOR_LABELS)},
+    }
+    return result, intervals

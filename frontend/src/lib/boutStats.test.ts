@@ -71,6 +71,8 @@ describe('changeScale', () => {
     expect(changeAxisMax([0.44, 0.1])).toBe(0.5)
     expect(changeAxisMax([0.5])).toBe(0.5)
     expect(changeAxisMax([0.01])).toBe(0.1)
+    expect(changeAxisMax([0.57])).toBe(0.6) // step 20%, so the last gridline lands on the end
+    expect(changeAxisMax([0.65])).toBe(0.8)
     expect(changeAxisMax([])).toBe(0.1)
   })
   it('puts gridlines at round percentages', () => {

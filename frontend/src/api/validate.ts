@@ -1,7 +1,9 @@
 import type {
   BehaviorFrequencies,
   BehaviorSegment,
+  CompareIntervals,
   CompareResult,
+  Interval,
   JobState,
   JobStatus,
   RecordingDurations,
@@ -29,7 +31,7 @@ function isFiniteNumber(value: unknown): value is number {
 
 export function parseJobStatus(raw: unknown): JobStatus<unknown> {
   if (!isRecord(raw)) throw new ContractError('job status is not an object')
-  const { job_id, status, result, warnings, durations } = raw
+  const { job_id, status, result, warnings, durations, intervals } = raw
   if (typeof job_id !== 'string' || job_id.length === 0) throw new ContractError('missing job_id')
   if (!JOB_STATES.includes(status as JobState)) throw new ContractError(`unknown job status "${String(status)}"`)
   return {
@@ -38,6 +40,7 @@ export function parseJobStatus(raw: unknown): JobStatus<unknown> {
     result: result ?? null,
     warnings: parseWarnings(warnings),
     durations: parseDurations(durations),
+    intervals: parseIntervals(intervals),
   }
 }
 
@@ -49,6 +52,27 @@ function parseWarnings(raw: unknown): readonly string[] {
 function parseDurations(raw: unknown): RecordingDurations | null {
   if (!isRecord(raw) || !isFiniteNumber(raw.control) || !isFiniteNumber(raw.treated)) return null
   return { control: raw.control, treated: raw.treated }
+}
+
+function parseIntervalMap(raw: unknown): Record<string, Interval> | null {
+  if (!isRecord(raw)) return null
+  const out: Record<string, Interval> = {}
+  for (const [label, pair] of Object.entries(raw)) {
+    if (Array.isArray(pair) && pair.length === 2 && isFiniteNumber(pair[0]) && isFiniteNumber(pair[1]) && pair[0] <= pair[1]) {
+      out[label] = [pair[0], pair[1]]
+    }
+  }
+  return out
+}
+
+// Additive and purely informational: anything malformed degrades to "no intervals" instead of failing the job.
+function parseIntervals(raw: unknown): CompareIntervals | null {
+  if (!isRecord(raw) || !isFiniteNumber(raw.level)) return null
+  const control = parseIntervalMap(raw.control)
+  const treated = parseIntervalMap(raw.treated)
+  const difference = parseIntervalMap(raw.difference)
+  if (!control || !treated || !difference) return null
+  return { level: raw.level, control, treated, difference }
 }
 
 function parseSegment(raw: unknown, index: number): BehaviorSegment {

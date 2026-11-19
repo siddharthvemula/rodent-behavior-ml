@@ -146,7 +146,7 @@ export function createApiClient(config: ApiConfig): ApiClient {
       form.append('control', control)
       form.append('treated', treated)
       const job = await submit('/compare', form, compareMock)
-      return { result: parseCompareResult(job.result), warnings: job.warnings, durations: job.durations }
+      return { result: parseCompareResult(job.result), warnings: job.warnings, durations: job.durations, intervals: job.intervals }
     },
   }
 }

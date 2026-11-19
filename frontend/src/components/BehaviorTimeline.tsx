@@ -2,6 +2,7 @@ import type { BehaviorSegment } from '../api/types'
 import { buildColorMap, formatSeconds, summarizeTimeline } from '../lib/behaviors'
 import { BoutStats } from './BoutStats'
 import { ConfidenceLane } from './ConfidenceLane'
+import { ModelTrust } from './ModelTrust'
 import { TimelineRibbon } from './TimelineRibbon'
 
 interface BehaviorTimelineProps {
@@ -32,6 +33,8 @@ export function BehaviorTimeline({ segments }: BehaviorTimelineProps) {
       <TimelineRibbon segments={segments} hatchLowConfidence belowStrip={<ConfidenceLane segments={segments} />} />
 
       <BoutStats segments={segments} />
+
+      <ModelTrust />
 
       <table className="data-table" aria-label="Predicted segments">
         <thead>

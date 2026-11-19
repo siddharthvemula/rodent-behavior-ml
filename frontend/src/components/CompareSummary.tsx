@@ -1,5 +1,5 @@
 import { useState, type CSSProperties } from 'react'
-import type { CompareResult } from '../api/types'
+import type { CompareIntervals, CompareResult } from '../api/types'
 import { buildColorMap, buildCompareRows } from '../lib/behaviors'
 import { behaviorInfo, capitalize } from '../lib/behaviorInfo'
 import { HERO_COUNT_MS, rowDelay } from '../lib/motion'
@@ -12,6 +12,7 @@ import { Hero, HeroStat } from './Hero'
 
 interface CompareSummaryProps {
   readonly result: CompareResult
+  readonly intervals?: CompareIntervals | null
   readonly onShowDetail?: () => void
 }
 
@@ -21,7 +22,7 @@ const points = (difference: number) => Math.round(difference * 100)
 const enter = (step: number) => ({ ['--s' as string]: step }) as CSSProperties
 
 /** Plain-language finding plus animated side-by-side bars and donuts. */
-export function CompareSummary({ result, onShowDetail }: CompareSummaryProps) {
+export function CompareSummary({ result, intervals = null, onShowDetail }: CompareSummaryProps) {
   // The behavior highlighted across bars and donuts (hover / focus), or null.
   const [active, setActive] = useState<string | null>(null)
 
@@ -88,7 +89,7 @@ export function CompareSummary({ result, onShowDetail }: CompareSummaryProps) {
         </header>
 
         <div className="chart-grid">
-          <ChangeChart result={result} order="canonical" standout={standout} showLegend={false} active={active} onActiveChange={setActive} />
+          <ChangeChart result={result} intervals={intervals} order="canonical" standout={standout} showLegend={false} active={active} onActiveChange={setActive} />
 
           <aside className="donuts enter-at" style={{ ['--enter-delay' as string]: `${rowDelay(0)}ms` } as CSSProperties} aria-label="Share of each recording">
             <div className="donuts__pair">

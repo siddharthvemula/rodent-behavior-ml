@@ -65,7 +65,7 @@ describe('mock mode', () => {
 
   it('returns the mocked comparison in contract shape', async () => {
     const result = await client.compare(makeFile('c.mp4'), makeFile('t.mp4'))
-    expect(result).toEqual({ result: compareMock.result, warnings: [], durations: null })
+    expect(result).toEqual({ result: compareMock.result, warnings: [], durations: null, intervals: compareMock.intervals })
   })
 })
 
