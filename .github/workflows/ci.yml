@@ -32,6 +32,18 @@ jobs:
       - name: Run ml tests
         run: pytest ml/tests -v
 
+  pharmacology:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install pharmacology test dependencies
+        run: pip install -r pharmacology/requirements.txt
+      - name: Run pharmacology tests
+        run: pytest pharmacology/tests -v
+
   frontend:
     runs-on: ubuntu-latest
     steps:

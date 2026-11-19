@@ -1,10 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import { api as defaultApi, type ApiClient } from '../api/client'
-import type { CompareResult } from '../api/types'
+import type { CompareOutcome } from '../api/types'
 import { CompareSummary } from '../components/CompareSummary'
 import { ComparisonChart } from '../components/ComparisonChart'
 import { FilePicker } from '../components/FilePicker'
+import { Notices } from '../components/Notices'
 import { StatusMessage } from '../components/StatusMessage'
+import { describeDurations } from '../lib/compareNotes'
+import { checkFilePair, isSameFile } from '../lib/fileChecks'
 import { useAsyncTask } from '../lib/useAsyncTask'
 import type { ViewMode } from '../lib/useViewMode'
 
@@ -15,11 +18,24 @@ interface CompareViewProps {
   readonly onShowDetail?: () => void
 }
 
+/** Recording lengths, a length caution when they differ a lot, and the backend's warnings. */
+function CompareNotes({ outcome }: { readonly outcome: CompareOutcome }) {
+  const note = describeDurations(outcome.durations)
+  return (
+    <>
+      {note && <p className="muted small">{note.line}</p>}
+      <Notices notes={note?.caution ? [note.caution, ...outcome.warnings] : outcome.warnings} />
+    </>
+  )
+}
+
 export function CompareView({ api = defaultApi, mode = 'detail', onShowDetail }: CompareViewProps) {
   const [control, setControl] = useState<File | null>(null)
   const [treated, setTreated] = useState<File | null>(null)
-  const { state, run, reset } = useAsyncTask<CompareResult>()
+  const { state, run, reset } = useAsyncTask<CompareOutcome>()
   const isLoading = state.status === 'loading'
+  const pairProblem = control && treated ? checkFilePair(control, treated) : null
+  const sameFile = control && treated ? isSameFile(control, treated) : false
 
   function selectFile(setter: (file: File | null) => void) {
     return (file: File | null) => {
@@ -30,7 +46,7 @@ export function CompareView({ api = defaultApi, mode = 'detail', onShowDetail }:
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    if (control && treated) void run(() => api.compare(control, treated))
+    if (control && treated && !pairProblem) void run(() => api.compare(control, treated))
   }
 
   return (
@@ -47,11 +63,21 @@ export function CompareView({ api = defaultApi, mode = 'detail', onShowDetail }:
           <FilePicker label="Recording A keypoints (JSON)" onChange={selectFile(setControl)} disabled={isLoading} />
           <FilePicker label="Recording B keypoints (JSON)" onChange={selectFile(setTreated)} disabled={isLoading} />
         </div>
+        {pairProblem && (
+          <p className="file-picker__error" role="alert">
+            {pairProblem}
+          </p>
+        )}
+        {sameFile && (
+          <p className="muted small" role="note">
+            Both pickers have the same file, so the two recordings will look identical.
+          </p>
+        )}
         <p className="muted small">
           Demo data note: the demo compares two real CalMS21 recordings as a stand-in for control and treatment
           groups. This project has no real drug-trial data.
         </p>
-        <button type="submit" className="button" disabled={!control || !treated || isLoading}>
+        <button type="submit" className="button" disabled={!control || !treated || isLoading || pairProblem !== null}>
           {isLoading ? 'Comparing…' : 'Compare behaviors'}
         </button>
       </form>
@@ -59,11 +85,12 @@ export function CompareView({ api = defaultApi, mode = 'detail', onShowDetail }:
       <StatusMessage state={state} loadingText="Classifying both recordings…" />
       {state.status === 'success' && (
         <div key={mode} className="mode-enter">
+          <CompareNotes outcome={state.data} />
           {mode === 'summary' ? (
-            <CompareSummary result={state.data} onShowDetail={onShowDetail} />
+            <CompareSummary result={state.data.result} onShowDetail={onShowDetail} />
           ) : (
             <div className="card">
-              <ComparisonChart result={state.data} />
+              <ComparisonChart result={state.data.result} />
             </div>
           )}
         </div>

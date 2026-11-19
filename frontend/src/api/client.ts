@@ -1,6 +1,6 @@
 import predictMock from '../mocks/predict.json'
 import compareMock from '../mocks/compare.json'
-import type { BehaviorSegment, CompareResult, JobStatus } from './types'
+import type { CompareOutcome, JobStatus, PredictOutcome } from './types'
 import { parseCompareResult, parseJobStatus, parseSegments } from './validate'
 
 // Talks to the backend contract in ARCHITECTURE.md:
@@ -31,8 +31,8 @@ export interface ApiConfig {
 }
 
 export interface ApiClient {
-  predict(file: File): Promise<readonly BehaviorSegment[]>
-  compare(control: File, treated: File): Promise<CompareResult>
+  predict(file: File): Promise<PredictOutcome>
+  compare(control: File, treated: File): Promise<CompareOutcome>
 }
 
 interface EnvLike {
@@ -65,14 +65,35 @@ export function configFromEnv(env: EnvLike): Pick<ApiConfig, 'baseUrl' | 'useMoc
 
 const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
+/** FastAPI sends `detail` as a string for our errors and as a list of {msg} objects for its own validation errors. */
+function detailToText(detail: unknown): string {
+  if (typeof detail === 'string') return detail
+  if (Array.isArray(detail)) {
+    const messages = detail.map((d) => (typeof d === 'object' && d !== null && 'msg' in d ? String(d.msg) : String(d)))
+    return messages.join('; ')
+  }
+  return ''
+}
+
+// Used when the response has no readable detail, e.g. an error page from the hosting platform.
+const STATUS_FALLBACKS: Readonly<Record<number, string>> = {
+  413: 'the upload is too large for this deployment (about 4 MB total); trim the clip',
+  502: 'the server had a problem; please try again',
+  503: 'the server is not ready; please try again in a moment',
+  504: 'the server took too long to respond; try a shorter recording',
+}
+
 async function readErrorDetail(response: Response): Promise<string> {
   try {
     const body: unknown = await response.json()
-    if (typeof body === 'object' && body !== null && 'detail' in body) return String(body.detail)
+    if (typeof body === 'object' && body !== null && 'detail' in body) {
+      const text = detailToText(body.detail)
+      if (text) return text
+    }
   } catch {
-    // Body was not JSON; fall back to the status text below.
+    // Body was not JSON (platform error page); fall back below.
   }
-  return response.statusText || 'request failed'
+  return STATUS_FALLBACKS[response.status] ?? (response.status >= 500 ? 'the server hit an error; please try again' : response.statusText || 'request failed')
 }
 
 export function createApiClient(config: ApiConfig): ApiClient {
@@ -94,10 +115,10 @@ export function createApiClient(config: ApiConfig): ApiClient {
     return parseJobStatus(await response.json())
   }
 
-  async function waitForJob(initial: JobStatus<unknown>): Promise<unknown> {
+  async function waitForJob(initial: JobStatus<unknown>): Promise<JobStatus<unknown>> {
     let job = initial
     for (let polls = 0; ; polls += 1) {
-      if (job.status === 'done') return job.result
+      if (job.status === 'done') return job
       if (job.status === 'failed') throw new ApiError(`Inference job ${job.job_id} failed`)
       if (polls >= maxPolls) throw new ApiError(`Inference job ${job.job_id} timed out`)
       await sleep(pollIntervalMs)
@@ -105,7 +126,7 @@ export function createApiClient(config: ApiConfig): ApiClient {
     }
   }
 
-  async function submit(path: string, form: FormData, mock: unknown): Promise<unknown> {
+  async function submit(path: string, form: FormData, mock: unknown): Promise<JobStatus<unknown>> {
     if (config.useMock) {
       await sleep(MOCK_LATENCY_MS)
       return waitForJob(parseJobStatus(mock))
@@ -117,13 +138,15 @@ export function createApiClient(config: ApiConfig): ApiClient {
     async predict(file) {
       const form = new FormData()
       form.append('file', file)
-      return parseSegments(await submit('/predict', form, predictMock))
+      const job = await submit('/predict', form, predictMock)
+      return { segments: parseSegments(job.result), warnings: job.warnings }
     },
     async compare(control, treated) {
       const form = new FormData()
       form.append('control', control)
       form.append('treated', treated)
-      return parseCompareResult(await submit('/compare', form, compareMock))
+      const job = await submit('/compare', form, compareMock)
+      return { result: parseCompareResult(job.result), warnings: job.warnings, durations: job.durations }
     },
   }
 }

@@ -1,13 +1,17 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { apiConfig } from './api/client'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { ViewToggle } from './components/ViewToggle'
 import { useViewMode } from './lib/useViewMode'
 import { CompareView } from './views/CompareView'
-import { PharmacologyView } from './views/PharmacologyView'
 import { TimelineView } from './views/TimelineView'
 import './App.css'
 import './summary.css'
 import './pharmacology.css'
+
+// Loaded on demand so that, if its committed data file were ever malformed, only this tab fails
+// (caught by its ErrorBoundary) instead of the import error taking down the whole app.
+const PharmacologyView = lazy(() => import('./views/PharmacologyView').then((m) => ({ default: m.PharmacologyView })))
 
 const TABS = [
   { id: 'timeline', label: 'Timeline' },
@@ -70,10 +74,14 @@ function App({ mockMode = apiConfig.useMock }: AppProps) {
       {/* Both panels stay mounted so switching tabs keeps each view's files and results. */}
       <main>
         <section id="panel-timeline" role="tabpanel" aria-labelledby="tab-timeline" hidden={activeTab !== 'timeline'}>
-          <TimelineView mode={viewMode} onShowDetail={() => setViewMode('detail')} />
+          <ErrorBoundary area="the timeline">
+            <TimelineView mode={viewMode} onShowDetail={() => setViewMode('detail')} />
+          </ErrorBoundary>
         </section>
         <section id="panel-compare" role="tabpanel" aria-labelledby="tab-compare" hidden={activeTab !== 'compare'}>
-          <CompareView mode={viewMode} onShowDetail={() => setViewMode('detail')} />
+          <ErrorBoundary area="the comparison">
+            <CompareView mode={viewMode} onShowDetail={() => setViewMode('detail')} />
+          </ErrorBoundary>
         </section>
         <section
           id="panel-pharmacology"
@@ -81,7 +89,11 @@ function App({ mockMode = apiConfig.useMock }: AppProps) {
           aria-labelledby="tab-pharmacology"
           hidden={activeTab !== 'pharmacology'}
         >
-          <PharmacologyView />
+          <ErrorBoundary area="the pharmacology demo">
+            <Suspense fallback={<p className="muted">Loading…</p>}>
+              <PharmacologyView />
+            </Suspense>
+          </ErrorBoundary>
         </section>
       </main>
     </div>

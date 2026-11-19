@@ -19,6 +19,7 @@ BODY_PART = "bodycentre"
 MIN_LIKELIHOOD = 0.9
 MAX_GAP_FRAMES = 5  # gaps this short are linearly interpolated
 MAX_STEP_PX = 50.0  # larger frame-to-frame moves are tracking jumps
+MIN_VALID_FRACTION = 0.5  # build() refuses a recording where fewer frames than this survive cleaning
 # Center = central square with 50% of the arena area: side 1/sqrt(2) of the arena side.
 CENTER_LO = (1 - 0.5**0.5) / 2
 CENTER_HI = 1 - CENTER_LO
@@ -31,11 +32,25 @@ CITATION = (
 
 
 def read_dlc(path: Path) -> dict[str, np.ndarray]:
-    """Parse a DeepLabCut CSV (3 header rows) into {bodypart: (n, 3) array of x, y, likelihood}."""
+    """Parse a DeepLabCut CSV (3 header rows) into {bodypart: (n, 3) array of x, y, likelihood}.
+
+    Raises ValueError naming the file and the problem for anything that is not a
+    well-formed DLC CSV (empty, header only, ragged rows, non-numeric cells)."""
     with open(path, newline="") as f:
         rows = list(csv.reader(f))
+    if len(rows) < 4:
+        raise ValueError(f"{path.name}: not a DeepLabCut CSV (need 3 header rows and at least 1 data row, got {len(rows)} rows)")
     bodyparts = rows[1][1:]
-    data = np.array(rows[3:], dtype=float)[:, 1:]
+    if not bodyparts or len(bodyparts) % 3 != 0:
+        raise ValueError(f"{path.name}: header must list x, y, likelihood per body part (got {len(bodyparts)} columns)")
+    width = len(bodyparts) + 1
+    for i, row in enumerate(rows[3:], start=4):
+        if len(row) != width:
+            raise ValueError(f"{path.name}: line {i} has {len(row)} columns, expected {width} (truncated or ragged file?)")
+    try:
+        data = np.array(rows[3:], dtype=float)[:, 1:]
+    except ValueError as exc:
+        raise ValueError(f"{path.name}: non-numeric or empty cell in the data rows ({exc})") from exc
     out: dict[str, np.ndarray] = {}
     for i in range(0, len(bodyparts), 3):
         out[bodyparts[i]] = data[:, i : i + 3]
@@ -44,8 +59,13 @@ def read_dlc(path: Path) -> dict[str, np.ndarray]:
 
 def arena_frame(parts: dict[str, np.ndarray]):
     """Median corner positions -> (origin, u, v, side_px). u = tl->tr, v = tl->bl."""
+    missing = [k for k in ("tl", "tr", "bl") if k not in parts]
+    if missing:
+        raise ValueError(f"missing arena corner markers: {', '.join(missing)}")
     c = {k: np.median(parts[k][:, :2], axis=0) for k in ("tl", "tr", "bl")}
     u, v = c["tr"] - c["tl"], c["bl"] - c["tl"]
+    if not (np.isfinite(u).all() and np.isfinite(v).all()) or abs(u[0] * v[1] - u[1] * v[0]) < 1e-6:
+        raise ValueError("arena corner markers are missing or collinear, so the arena cannot be mapped")
     return c["tl"], u, v, float((np.linalg.norm(u) + np.linalg.norm(v)) / 2)
 
 
@@ -78,9 +98,14 @@ def clean_track(xy: np.ndarray, likelihood: np.ndarray) -> np.ndarray:
 
 def compute_metrics(parts: dict[str, np.ndarray]) -> dict:
     origin, u, v, side = arena_frame(parts)
+    if BODY_PART not in parts:
+        raise ValueError(f"no '{BODY_PART}' body part in the file")
     track = parts[BODY_PART]
     xy = clean_track(track[:, :2], track[:, 2])
     valid = ~np.isnan(xy).any(axis=1)
+    if valid.sum() < 2:
+        # Would otherwise yield NaN metrics (mean of an empty selection) and write invalid JSON.
+        raise ValueError(f"only {int(valid.sum())} usable frames after likelihood filtering (need at least 2)")
 
     steps = np.hypot(*np.diff(xy, axis=0).T)  # NaN where either frame is missing
     step_ok = ~np.isnan(steps)
@@ -112,10 +137,15 @@ def load_metadata(path: Path) -> list[dict]:
 def build(data_dir: Path) -> dict:
     mice = []
     for row in load_metadata(data_dir / "METADATA_ROCHE.csv"):
-        parts = read_dlc(data_dir / "data" / "Yohimbine_Roche" / row["DLC file"])
-        mice.append(
-            {"id": row["Animal ID"], "dose_mg_kg": float(row["Dosage"]), **compute_metrics(parts)}
-        )
+        try:
+            parts = read_dlc(data_dir / "data" / "Yohimbine_Roche" / row["DLC file"])
+            metrics = compute_metrics(parts)
+            valid_fraction = 1 - metrics["missing_frame_pct"] / 100
+            if valid_fraction < MIN_VALID_FRACTION:
+                raise ValueError(f"only {valid_fraction:.0%} of frames usable (minimum {MIN_VALID_FRACTION:.0%})")
+            mice.append({"id": row["Animal ID"], "dose_mg_kg": float(row["Dosage"]), **metrics})
+        except (ValueError, KeyError, OSError) as exc:
+            raise ValueError(f"animal {row.get('Animal ID', '?')} ({row.get('DLC file', '?')}): {exc}") from exc
     mice.sort(key=lambda m: (m["dose_mg_kg"], m["id"]))
     return {
         "dataset": {
@@ -142,5 +172,6 @@ if __name__ == "__main__":
     root = Path(__file__).resolve().parent
     out = Path(sys.argv[2]) if len(sys.argv) > 2 else root.parent / "frontend/src/data/open_field.json"
     result = build(Path(sys.argv[1]) if len(sys.argv) > 1 else root / "data")
-    out.write_text(json.dumps(result, indent=1) + "\n")
+    # allow_nan=False: a NaN metric must fail the build, not ship as invalid JSON.
+    out.write_text(json.dumps(result, indent=1, allow_nan=False) + "\n")
     print(f"wrote {len(result['mice'])} mice to {out}")

@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import { api as defaultApi, type ApiClient } from '../api/client'
-import type { BehaviorSegment } from '../api/types'
+import type { PredictOutcome } from '../api/types'
 import { BehaviorTimeline } from '../components/BehaviorTimeline'
 import { TimelineSummary } from '../components/TimelineSummary'
 import { FilePicker } from '../components/FilePicker'
+import { Notices } from '../components/Notices'
 import { StatusMessage } from '../components/StatusMessage'
 import { useAsyncTask } from '../lib/useAsyncTask'
 import type { ViewMode } from '../lib/useViewMode'
@@ -17,7 +18,7 @@ interface TimelineViewProps {
 
 export function TimelineView({ api = defaultApi, mode = 'detail', onShowDetail }: TimelineViewProps) {
   const [file, setFile] = useState<File | null>(null)
-  const { state, run, reset } = useAsyncTask<readonly BehaviorSegment[]>()
+  const { state, run, reset } = useAsyncTask<PredictOutcome>()
   const isLoading = state.status === 'loading'
 
   function handleFileChange(next: File | null) {
@@ -40,7 +41,7 @@ export function TimelineView({ api = defaultApi, mode = 'detail', onShowDetail }
       <form className="card form" onSubmit={handleSubmit}>
         <FilePicker
           label="Keypoints file (JSON)"
-          hint="Pose keypoints of the two mice as JSON. Raw video is not supported yet."
+          hint="Pose keypoints of the two mice as JSON, at least 3 s long, up to about 3.5 minutes (4 MB). Raw video and CSV are not supported."
           onChange={handleFileChange}
           disabled={isLoading}
         />
@@ -52,11 +53,12 @@ export function TimelineView({ api = defaultApi, mode = 'detail', onShowDetail }
       <StatusMessage state={state} loadingText="Running behavior classifier…" />
       {state.status === 'success' && (
         <div key={mode} className="mode-enter">
+          <Notices notes={state.data.warnings} />
           {mode === 'summary' ? (
-            <TimelineSummary segments={state.data} onShowDetail={onShowDetail} />
+            <TimelineSummary segments={state.data.segments} onShowDetail={onShowDetail} />
           ) : (
             <div className="card">
-              <BehaviorTimeline segments={state.data} />
+              <BehaviorTimeline segments={state.data.segments} />
             </div>
           )}
         </div>

@@ -60,12 +60,12 @@ describe('mock mode', () => {
 
   it('returns the mocked predict timeline in contract shape', async () => {
     const segments = await client.predict(makeFile('a.mp4'))
-    expect(segments).toEqual(predictMock.result)
+    expect(segments).toEqual({ segments: predictMock.result, warnings: [] })
   })
 
   it('returns the mocked comparison in contract shape', async () => {
     const result = await client.compare(makeFile('c.mp4'), makeFile('t.mp4'))
-    expect(result).toEqual(compareMock.result)
+    expect(result).toEqual({ result: compareMock.result, warnings: [], durations: null })
   })
 })
 
@@ -75,7 +75,7 @@ describe('predict against the live backend', () => {
 
     const segments = await liveClient(fetchImpl).predict(makeFile('a.mp4'))
 
-    expect(segments).toHaveLength(3)
+    expect(segments.segments).toHaveLength(3)
     const [url, init] = fetchImpl.mock.calls[0]
     expect(url).toBe(`${BASE_URL}/predict`)
     expect(init?.method).toBe('POST')
@@ -91,7 +91,7 @@ describe('predict against the live backend', () => {
 
     const segments = await liveClient(fetchImpl).predict(makeFile('a.mp4'))
 
-    expect(segments).toEqual(predictMock.result)
+    expect(segments.segments).toEqual(predictMock.result)
     expect(fetchImpl.mock.calls[1][0]).toBe(`${BASE_URL}/jobs/j1`)
     expect(fetchImpl).toHaveBeenCalledTimes(3)
   })
@@ -139,7 +139,7 @@ describe('compare against the live backend', () => {
 
     const result = await liveClient(fetchImpl).compare(makeFile('c.mp4'), makeFile('t.mp4'))
 
-    expect(result.difference.attack).toBeCloseTo(0.15)
+    expect(result.result.difference.attack).toBeCloseTo(0.15)
     const [url, init] = fetchImpl.mock.calls[0]
     expect(url).toBe(`${BASE_URL}/compare`)
     const body = init?.body as FormData
@@ -151,5 +151,46 @@ describe('compare against the live backend', () => {
     const bad = { job_id: 'j', status: 'done', result: { control: { a: 'x' }, treated: {}, difference: {} } }
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(bad))
     await expect(liveClient(fetchImpl).compare(makeFile('c'), makeFile('t'))).rejects.toThrow(/unexpected response/i)
+  })
+})
+
+describe('additive warnings / durations fields', () => {
+  it('passes backend warnings and compare durations through', async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        jsonResponse({ ...compareMock, warnings: ['Recording A: Short recording'], durations: { control: 5, treated: 30 } }),
+      )
+    const out = await liveClient(fetchImpl).compare(makeFile('c.json'), makeFile('t.json'))
+    expect(out.warnings).toEqual(['Recording A: Short recording'])
+    expect(out.durations).toEqual({ control: 5, treated: 30 })
+  })
+
+  it('ignores malformed warnings/durations instead of failing the result', async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(jsonResponse({ ...compareMock, warnings: 'oops', durations: { control: 'x' } }))
+    const out = await liveClient(fetchImpl).compare(makeFile('c.json'), makeFile('t.json'))
+    expect(out.warnings).toEqual([])
+    expect(out.durations).toBeNull()
+  })
+})
+
+describe('error messages', () => {
+  const failWith = (response: Response) =>
+    liveClient(vi.fn<typeof fetch>().mockResolvedValue(response))
+      .predict(makeFile('a.json'))
+      .catch((e: unknown) => (e as Error).message)
+
+  it('joins a FastAPI validation-error list instead of printing [object Object]', async () => {
+    const msg = await failWith(jsonResponse({ detail: [{ msg: 'Field required' }, { msg: 'bad' }] }, 422))
+    expect(msg).toMatch(/422: Field required; bad/)
+    expect(msg).not.toMatch(/object Object/)
+  })
+
+  it('explains platform errors that have no JSON body', async () => {
+    expect(await failWith(new Response('Request Entity Too Large', { status: 413 }))).toMatch(/too large.*4 MB/i)
+    expect(await failWith(new Response('', { status: 504 }))).toMatch(/too long|shorter/i)
+    expect(await failWith(new Response('<html>', { status: 500 }))).toMatch(/server hit an error/i)
   })
 })

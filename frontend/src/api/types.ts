@@ -20,8 +20,29 @@ export interface CompareResult {
 
 export type JobState = 'queued' | 'running' | 'done' | 'failed'
 
+/** Seconds of video in each recording; sent by the backend for compare jobs only. */
+export interface RecordingDurations {
+  readonly control: number
+  readonly treated: number
+}
+
 export interface JobStatus<TResult> {
   readonly job_id: string
   readonly status: JobState
   readonly result: TResult | null
+  /** Things the backend repaired or finds suspicious about the upload (additive field; may be absent). */
+  readonly warnings: readonly string[]
+  readonly durations: RecordingDurations | null
+}
+
+/** What predict()/compare() hand to the views: the result plus the backend's notes about the input. */
+export interface PredictOutcome {
+  readonly segments: readonly BehaviorSegment[]
+  readonly warnings: readonly string[]
+}
+
+export interface CompareOutcome {
+  readonly result: CompareResult
+  readonly warnings: readonly string[]
+  readonly durations: RecordingDurations | null
 }
