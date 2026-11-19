@@ -8,8 +8,6 @@
   --accent-text: #ffffff;
   --control: #64748b;
   --treated: #2563eb;
-  --up: #15803d;
-  --down: #b91c1c;
   --error-bg: #fef2f2;
   --error-text: #991b1b;
   --warn-bg: #fffbeb;
@@ -52,9 +50,7 @@
     --accent-text: #0b1220;
     --control: #94a3b8;
     --treated: #60a5fa;
-    --up: #4ade80;
-    --down: #f87171;
-    --error-bg: #2a1215;
+        --error-bg: #2a1215;
     --error-text: #fca5a5;
     --warn-bg: #2a2110;
     --warn-text: #fcd34d;

@@ -1,13 +1,14 @@
 import type { CompareResult } from '../api/types'
 import { buildCompareRows } from '../lib/behaviors'
+import { ChangeChart } from './ChangeChart'
 
 interface ComparisonChartProps {
   readonly result: CompareResult
 }
 
 // ARCHITECTURE.md says "per-behavior frequency" without fixing the unit
-// (fraction of time vs. bout count), so values are shown as-is and bars are
-// scaled to the largest value rather than assuming a 0-1 range.
+// (fraction of time vs. bout count), so the table shows values as-is; the
+// change chart above it scales its axis to the data.
 const formatValue = (value: number) => value.toFixed(2)
 const formatDifference = (value: number) => `${value > 0 ? '+' : ''}${formatValue(value)}`
 
@@ -17,27 +18,14 @@ export function ComparisonChart({ result }: ComparisonChartProps) {
     return <p className="empty">No behaviors detected in either recording.</p>
   }
 
-  const maxValue = Math.max(...rows.flatMap((r) => [r.control, r.treated])) || 1
-  const barWidth = (value: number) => `${(value / maxValue) * 100}%`
-
   return (
     <section className="result" aria-label="Comparison of two recordings">
-      <ul className="legend">
-        <li>
-          <span className="swatch swatch--control" aria-hidden="true" /> Recording A
-        </li>
-        <li>
-          <span className="swatch swatch--treated" aria-hidden="true" /> Recording B
-        </li>
-      </ul>
+      <ChangeChart result={result} />
 
       <table className="data-table compare-table" aria-label="Behavior frequency comparison">
         <thead>
           <tr>
             <th scope="col">Behavior</th>
-            <th scope="col" className="bars">
-              Recording A vs recording B
-            </th>
             <th scope="col" className="num">Recording A</th>
             <th scope="col" className="num">Recording B</th>
             <th scope="col" className="num">Difference</th>
@@ -47,13 +35,9 @@ export function ComparisonChart({ result }: ComparisonChartProps) {
           {rows.map((r) => (
             <tr key={r.label}>
               <th scope="row">{r.label}</th>
-              <td className="bars" aria-hidden="true">
-                <div className="bar bar--control" style={{ width: barWidth(r.control) }} />
-                <div className="bar bar--treated" style={{ width: barWidth(r.treated) }} />
-              </td>
               <td className="num">{formatValue(r.control)}</td>
               <td className="num">{formatValue(r.treated)}</td>
-              <td className={`num diff ${r.difference > 0 ? 'diff--up' : r.difference < 0 ? 'diff--down' : ''}`}>
+              <td className="num diff">
                 {formatDifference(r.difference)}
               </td>
             </tr>

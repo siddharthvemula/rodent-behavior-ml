@@ -1,7 +1,8 @@
-import { useState, type CSSProperties, type PointerEvent } from 'react'
+import { useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react'
 import type { BehaviorSegment } from '../api/types'
 import { buildColorMap, formatSeconds, summarizeTimeline } from '../lib/behaviors'
 import { behaviorInfo } from '../lib/behaviorInfo'
+import { LOW_CONFIDENCE } from '../lib/boutStats'
 import { pickSegment } from '../lib/ribbon'
 import { percent } from '../lib/summary'
 
@@ -17,12 +18,16 @@ interface TimelineRibbonProps {
   /** Sweep the segments in left to right (Summary view). */
   readonly animate?: boolean
   readonly interactive?: RibbonInteraction
+  /** Detail view: hatch segments the model is unsure about (below LOW_CONFIDENCE). */
+  readonly hatchLowConfidence?: boolean
+  /** Rendered between the strip and its time axis (Detail view: the confidence lane). */
+  readonly belowStrip?: ReactNode
 }
 
 const TICKS = 4 // five time labels: start, quarters, end
 
 /** The colored time strip with its axis; shared by the Detail view (plain) and the Summary (interactive). */
-export function TimelineRibbon({ segments, animate = false, interactive }: TimelineRibbonProps) {
+export function TimelineRibbon({ segments, animate = false, interactive, hatchLowConfidence = false, belowStrip }: TimelineRibbonProps) {
   const [hovered, setHovered] = useState<number | null>(null)
   const { duration, totals } = summarizeTimeline(segments)
   const colors = buildColorMap(segments.map((s) => s.behavior_label))
@@ -78,7 +83,7 @@ export function TimelineRibbon({ segments, animate = false, interactive }: Timel
         return (
           <div
             key={`${s.start_time}-${s.behavior_label}`}
-            className={`timeline__segment${state}`}
+            className={`timeline__segment${state}${hatchLowConfidence && s.confidence < LOW_CONFIDENCE ? ' is-low' : ''}`}
             title={
               interactive
                 ? undefined // the Summary shows its own readout
@@ -95,6 +100,7 @@ export function TimelineRibbon({ segments, animate = false, interactive }: Timel
     return (
       <>
         {strip}
+        {belowStrip}
         <div className="timeline__axis muted">
           <span>{formatSeconds(origin)}</span>
           <span>{formatSeconds(origin + duration)}</span>

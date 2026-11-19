@@ -35,7 +35,7 @@ describe('CompareSummary', () => {
 
   it('lists every behavior in the fixed order with exact values in its accessible name', () => {
     render(<CompareSummary result={compare} />)
-    const rows = screen.getAllByRole('listitem').filter((li) => li.classList.contains('pair'))
+    const rows = screen.getAllByRole('group').filter((g) => g.classList.contains('change__row'))
     expect(rows.map((r) => r.getAttribute('aria-label'))).toEqual([
       'Attack: recording A 0%, recording B 44%, 44 percentage points higher in recording B',
       'Investigation: recording A 61%, recording B 12%, 49 percentage points lower in recording B. Biggest change',
@@ -49,8 +49,10 @@ describe('CompareSummary', () => {
     const legend = screen.getByRole('list', { name: 'Legend' })
     expect(within(legend).getByText('Recording A')).toBeInTheDocument()
     expect(within(legend).getByText('Recording B')).toBeInTheDocument()
-    expect(screen.getByText('+44 pts')).toBeInTheDocument()
-    expect(screen.getByText('−49 pts')).toBeInTheDocument()
+    const deltas = [...document.querySelectorAll('.change__delta')].map((d) => d.textContent?.trim())
+    expect(deltas).toContain('+44 pts')
+    expect(deltas).toContain('−49 pts')
+    expect(document.querySelector('.pair')).toBeNull() // the old paired bars are gone
   })
 
   it('is honest about what the numbers are', () => {
@@ -78,7 +80,7 @@ describe('CompareSummary', () => {
   it('every behavior row carries its fixed color', () => {
     const { container } = render(<CompareSummary result={compare} />)
     const colors = buildColorMap(Object.keys(compare.control))
-    const rows = [...container.querySelectorAll<HTMLElement>('li.pair')]
+    const rows = [...container.querySelectorAll<HTMLElement>('div.change__row')]
     expect(rows.map((r) => r.style.getPropertyValue('--beh'))).toEqual(['attack', 'investigation', 'mount', 'other'].map((l) => colors[l]))
   })
 })
@@ -176,7 +178,7 @@ describe('ViewToggle', () => {
 describe('standout, donuts and linked hover', () => {
   it('flags the headline behavior as the standout and no other', () => {
     const { container } = render(<CompareSummary result={compare} />)
-    const standout = [...container.querySelectorAll('li.pair--standout')]
+    const standout = [...container.querySelectorAll('div.change__row.is-standout')]
     expect(standout).toHaveLength(1)
     expect(standout[0].getAttribute('aria-label')).toMatch(/^Investigation/)
     expect(within(standout[0] as HTMLElement).getByText('Biggest change')).toBeInTheDocument()
@@ -191,7 +193,7 @@ describe('standout, donuts and linked hover', () => {
     const flat: CompareResult = { control: { attack: 0.1, other: 0.9 }, treated: { attack: 0.11, other: 0.89 }, difference: { attack: 0.01, other: -0.01 } }
     const { container } = render(<CompareSummary result={flat} />)
     expect(container.querySelector('.hero-stat')).toBeNull()
-    expect(container.querySelector('.pair--standout')).toBeNull()
+    expect(container.querySelector('.change__row.is-standout')).toBeNull()
   })
 
   it('draws a donut per recording with every value in its accessible name', () => {
@@ -205,10 +207,10 @@ describe('standout, donuts and linked hover', () => {
     const centers = () => [...container.querySelectorAll('.donut__center')].map((c) => c.textContent)
     expect(centers()).toEqual(['61%Investigation', '12%Investigation'])
 
-    const attackRow = screen.getAllByRole('listitem').find((li) => li.getAttribute('aria-label')?.startsWith('Attack'))!
+    const attackRow = screen.getAllByRole('group').find((g) => g.classList.contains('change__row') && g.getAttribute('aria-label')?.startsWith('Attack'))!
     await userEvent.hover(attackRow)
     expect(centers()).toEqual(['0%Attack', '44%Attack']) // both donuts follow the hovered row
-    expect(container.querySelectorAll('li.pair.is-dim')).toHaveLength(3)
+    expect(container.querySelectorAll('div.change__row.is-dim')).toHaveLength(3)
     expect(attackRow).toHaveClass('is-active')
 
     await userEvent.unhover(attackRow)
@@ -220,7 +222,7 @@ describe('standout, donuts and linked hover', () => {
     const { container } = render(<CompareSummary result={compare} />)
     const treatedAttackSeg = container.querySelectorAll('.donut')[1].querySelector<SVGCircleElement>('.donut__seg')!
     await userEvent.hover(treatedAttackSeg)
-    const active = container.querySelector('li.pair.is-active')
+    const active = container.querySelector('div.change__row.is-active')
     expect(active?.getAttribute('aria-label')).toMatch(/^Attack/)
   })
 
