@@ -387,3 +387,17 @@ def test_health_reports_503_when_model_cannot_load(monkeypatch):
     resp = client.get("/api/health")
     assert resp.status_code == 503
     assert resp.json()["model_loaded"] is False
+
+
+def test_compare_reports_bootstrap_intervals_and_predict_does_not():
+    body = _compare(_keypoints_json(450, seed=1), _keypoints_json(450, seed=2)).json()
+    iv = body["intervals"]
+    assert iv["level"] == 0.95
+    for group in ("control", "treated", "difference"):
+        assert list(iv[group]) == BEHAVIOR_LABELS
+        assert all(len(pair) == 2 and pair[0] <= pair[1] for pair in iv[group].values())
+    # the existing result shape is untouched
+    assert set(body["result"]) == {"control", "treated", "difference"}
+
+    predicted = client.post("/api/predict", files={"file": ("a.json", _keypoints_json(300), "application/json")})
+    assert predicted.json()["intervals"] is None

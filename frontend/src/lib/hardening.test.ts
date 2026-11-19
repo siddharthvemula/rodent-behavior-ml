@@ -54,3 +54,29 @@ describe('parseJobStatus additive fields', () => {
     expect(job.durations).toBeNull()
   })
 })
+
+describe('intervals (additive compare field)', () => {
+  const pair = { attack: [0, 0.1], investigation: [0.2, 0.4], mount: [0, 0.1], other: [0.3, 0.5] }
+  const base = { job_id: 'j', status: 'done', result: null }
+
+  it('parses well-formed intervals', async () => {
+    const { parseJobStatus } = await import('../api/validate')
+    const job = parseJobStatus({ ...base, intervals: { level: 0.95, control: pair, treated: pair, difference: pair } })
+    expect(job.intervals?.level).toBe(0.95)
+    expect(job.intervals?.control.investigation).toEqual([0.2, 0.4])
+  })
+
+  it('is null when an older backend omits them or they are malformed', async () => {
+    const { parseJobStatus } = await import('../api/validate')
+    expect(parseJobStatus(base).intervals).toBeNull()
+    expect(parseJobStatus({ ...base, intervals: 'x' }).intervals).toBeNull()
+    expect(parseJobStatus({ ...base, intervals: { level: 0.95, control: pair } }).intervals).toBeNull()
+  })
+
+  it('drops individual bad pairs instead of failing', async () => {
+    const { parseJobStatus } = await import('../api/validate')
+    const bad = { ...pair, attack: [0.5, 0.1], mount: ['a', 1] }
+    const job = parseJobStatus({ ...base, intervals: { level: 0.95, control: bad, treated: pair, difference: pair } })
+    expect(Object.keys(job.intervals!.control).sort()).toEqual(['investigation', 'other'])
+  })
+})

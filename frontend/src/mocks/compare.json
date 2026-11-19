@@ -2,8 +2,80 @@
   "job_id": "mock-compare-job",
   "status": "done",
   "result": {
-    "control": { "attack": 0.05, "investigation": 0.35, "mount": 0.10, "other": 0.50 },
-    "treated": { "attack": 0.20, "investigation": 0.30, "mount": 0.05, "other": 0.45 },
-    "difference": { "attack": 0.15, "investigation": -0.05, "mount": -0.05, "other": -0.05 }
+    "control": {
+      "attack": 0.05,
+      "investigation": 0.35,
+      "mount": 0.1,
+      "other": 0.5
+    },
+    "treated": {
+      "attack": 0.2,
+      "investigation": 0.3,
+      "mount": 0.05,
+      "other": 0.45
+    },
+    "difference": {
+      "attack": 0.15,
+      "investigation": -0.05,
+      "mount": -0.05,
+      "other": -0.05
+    }
+  },
+  "intervals": {
+    "level": 0.95,
+    "control": {
+      "attack": [
+        0.0,
+        0.12
+      ],
+      "investigation": [
+        0.22,
+        0.48
+      ],
+      "mount": [
+        0.03,
+        0.19
+      ],
+      "other": [
+        0.38,
+        0.62
+      ]
+    },
+    "treated": {
+      "attack": [
+        0.09,
+        0.33
+      ],
+      "investigation": [
+        0.18,
+        0.43
+      ],
+      "mount": [
+        0.0,
+        0.12
+      ],
+      "other": [
+        0.33,
+        0.57
+      ]
+    },
+    "difference": {
+      "attack": [
+        0.02,
+        0.28
+      ],
+      "investigation": [
+        -0.24,
+        0.14
+      ],
+      "mount": [
+        -0.17,
+        0.06
+      ],
+      "other": [
+        -0.24,
+        0.13
+      ]
+    }
   }
 }

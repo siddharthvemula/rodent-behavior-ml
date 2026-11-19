@@ -1,0 +1,57 @@
+{
+  "_source": "ml/metrics.json via ml/export_frontend_metrics.py; do not edit by hand",
+  "dataset": "CalMS21 Task 1",
+  "classifier": "HistGradientBoostingClassifier",
+  "n_train_recordings": 70,
+  "n_test_recordings": 19,
+  "n_seeds": 3,
+  "labels": [
+    "attack",
+    "investigation",
+    "mount",
+    "other"
+  ],
+  "test_f1": {
+    "attack": 0.8195,
+    "investigation": 0.8497,
+    "mount": 0.9218,
+    "other": 0.9523
+  },
+  "test_macro_f1": 0.8858,
+  "test_time_share_mae": {
+    "attack": 0.0073,
+    "investigation": 0.0288,
+    "mount": 0.0111,
+    "other": 0.0246
+  },
+  "confusion_rows_true_cols_pred": [
+    [
+      11098,
+      1152,
+      147,
+      233
+    ],
+    [
+      2456,
+      51857,
+      1168,
+      5794
+    ],
+    [
+      52,
+      1637,
+      29346,
+      813
+    ],
+    [
+      857,
+      6049,
+      1108,
+      148340
+    ]
+  ],
+  "baseline_macro_f1": {
+    "always_other": 0.1868,
+    "shuffled_labels": 0.2384
+  }
+}

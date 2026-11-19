@@ -65,3 +65,48 @@ def test_deterministic():
 def test_old_placeholder_labels_are_gone():
     labels = {s["behavior_label"] for s in I.predict_behaviors(_kp(300))}
     assert not labels & {"grooming", "rearing"}
+
+
+def test_compare_with_intervals_matches_compare_and_brackets_the_estimates():
+    a, b = _kp(600, seed=1), _kp(600, seed=2)
+    result, iv = I.compare_with_intervals(a, b)
+    assert result == I.compare_behaviors(a, b)
+    assert iv["level"] == 0.95
+    for group in ("control", "treated", "difference"):
+        assert list(iv[group]) == P.BEHAVIOR_LABELS
+        for lo, hi in iv[group].values():
+            assert lo <= hi
+    for lab in P.BEHAVIOR_LABELS:
+        for group in ("control", "treated"):
+            lo, hi = iv[group][lab]
+            assert -0.011 <= lo <= result[group][lab] + 0.011 and result[group][lab] - 0.011 <= hi <= 1.011
+
+
+def test_intervals_are_deterministic():
+    a, b = _kp(300, seed=1), _kp(300, seed=2)
+    assert I.compare_with_intervals(a, b)[1] == I.compare_with_intervals(a, b)[1]
+
+
+def test_identical_recordings_difference_interval_contains_zero():
+    kp = _kp(600)
+    _, iv = I.compare_with_intervals(kp, kp)
+    for lo, hi in iv["difference"].values():
+        assert lo <= 0 <= hi
+
+
+@pytest.mark.parametrize("n", [1, 2, 5, 90])
+def test_intervals_work_on_very_short_recordings(n):
+    _, iv = I.compare_with_intervals(_kp(n), _kp(n, seed=2))
+    assert set(iv["control"]) == set(P.BEHAVIOR_LABELS)
+
+
+def test_block_bootstrap_is_wider_than_frame_bootstrap_for_bouty_labels():
+    # 60 s of 10 s alternating bouts: a frame-level bootstrap would give a tiny interval
+    # around 0.5; resampling whole blocks must not.
+    import numpy as np
+
+    labels = np.tile(np.repeat([0, 3], 300), 3)
+    boot = I.bootstrap_frequencies(labels, np.random.default_rng(0))
+    assert boot[:, 0].mean() == pytest.approx(0.5, abs=0.05)
+    frame_level_sd = (0.25 / len(labels)) ** 0.5
+    assert boot[:, 0].std() > 3 * frame_level_sd

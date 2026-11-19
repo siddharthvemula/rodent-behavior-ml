@@ -45,7 +45,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 sys.path.insert(0, str(Path(__file__).parent))
-from ml_model.inference import _get_model, compare_behaviors, predict_behaviors
+from ml_model.inference import _get_model, compare_with_intervals, predict_behaviors
 from validation import Recording, UploadRejected, oversized_hint, validate_recording
 
 logger = logging.getLogger("rodent-api")
@@ -120,6 +120,18 @@ class CompareResult(BaseModel):
     difference: Dict[str, float]
 
 
+class CompareIntervals(BaseModel):
+    """95% block-bootstrap intervals, [low, high] per behavior, as fractions of recording time.
+
+    Describes how stable each recording's own estimate is; it is not a test of
+    whether two animals or groups differ (see ml/inference.py)."""
+
+    level: float
+    control: Dict[str, List[float]]
+    treated: Dict[str, List[float]]
+    difference: Dict[str, List[float]]
+
+
 class JobStatus(BaseModel):
     job_id: str
     status: Literal["queued", "running", "done", "failed"]
@@ -127,6 +139,7 @@ class JobStatus(BaseModel):
     # Additive fields (HARDENING_PLAN.md): older clients simply ignore them.
     warnings: List[str] = []
     durations: Optional[Dict[str, float]] = None  # compare only: {"control": s, "treated": s}
+    intervals: Optional[CompareIntervals] = None  # compare only (viz Phase 2)
 
 
 def _new_job() -> str:
@@ -136,6 +149,7 @@ def _new_job() -> str:
         "result": None,
         "warnings": [],
         "durations": None,
+        "intervals": None,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     while len(jobs) > MAX_JOBS:
@@ -151,6 +165,7 @@ def _status(job_id: str) -> JobStatus:
         result=job["result"],
         warnings=job["warnings"],
         durations=job["durations"],
+        intervals=job["intervals"],
     )
 
 
@@ -181,6 +196,12 @@ def predict(file: UploadFile = File(...)):
     return _status(job_id)
 
 
+def _compare_job(job_id: str, a: Recording, b: Recording) -> dict:
+    result, intervals = compare_with_intervals(a.keypoints, b.keypoints, a.frame_rate, b.frame_rate)
+    jobs[job_id]["intervals"] = intervals
+    return result
+
+
 @api.post("/compare", response_model=JobStatus)
 def compare(control: UploadFile = File(...), treated: UploadFile = File(...)):
     a = _validate(control, "Recording A (control)")
@@ -188,7 +209,7 @@ def compare(control: UploadFile = File(...), treated: UploadFile = File(...)):
     job_id = _new_job()
     jobs[job_id]["warnings"] = [f"Recording A: {w}" for w in a.warnings] + [f"Recording B: {w}" for w in b.warnings]
     jobs[job_id]["durations"] = {"control": round(a.duration, 2), "treated": round(b.duration, 2)}
-    _run_job(job_id, compare_behaviors, a.keypoints, b.keypoints, a.frame_rate, b.frame_rate)
+    _run_job(job_id, _compare_job, job_id, a, b)
     return _status(job_id)
 
 

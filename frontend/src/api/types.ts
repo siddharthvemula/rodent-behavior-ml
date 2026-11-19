@@ -33,6 +33,8 @@ export interface JobStatus<TResult> {
   /** Things the backend repaired or finds suspicious about the upload (additive field; may be absent). */
   readonly warnings: readonly string[]
   readonly durations: RecordingDurations | null
+  /** Compare jobs only; null when the backend does not send them. */
+  readonly intervals: CompareIntervals | null
 }
 
 /** What predict()/compare() hand to the views: the result plus the backend's notes about the input. */
@@ -45,4 +47,20 @@ export interface CompareOutcome {
   readonly result: CompareResult
   readonly warnings: readonly string[]
   readonly durations: RecordingDurations | null
+  readonly intervals: CompareIntervals | null
+}
+
+/** [low, high] as fractions of recording time. */
+export type Interval = readonly [number, number]
+
+/**
+ * 95% block-bootstrap intervals per behavior (compare jobs only; additive, may
+ * be absent). They describe how stable each recording's own estimate is; they
+ * are not a test of whether two animals or groups differ.
+ */
+export interface CompareIntervals {
+  readonly level: number
+  readonly control: Readonly<Record<string, Interval>>
+  readonly treated: Readonly<Record<string, Interval>>
+  readonly difference: Readonly<Record<string, Interval>>
 }
