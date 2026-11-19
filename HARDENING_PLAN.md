@@ -92,9 +92,38 @@ All items above are implemented except where noted:
   `pharmacology/open_field.py`. Tests added in `backend/tests/{test_api,test_validation}.py`, several frontend test files
   and `pharmacology/tests/test_open_field.py`.
 
-### To verify on real infrastructure
+### To verify on real infrastructure (status: mostly done, see "Production verification")
 
 * GitHub Actions backend job (pinned Python 3.11, scikit-learn 1.7.1, the real `model.joblib`): the new API tests assert
   contract behavior only; nothing asserts specific behavior labels.
 * Upload a ~6,000-frame clip with the real model and check the Detail view renders quickly (#22).
 * The `pharmacology/tests` suite is not part of CI today.
+
+## Production verification (2026-11-19)
+
+PR #10 was merged (merge commit `5fcfa3f`), all CI jobs passed on the pinned environment (backend with the real
+`model.joblib`, ml, frontend, pharmacology), and the production Vercel deployment at
+https://rodent-behavior-ml.vercel.app was checked by uploading test files straight to `/api`.
+Files used live in the gitignored `data/processed/demo/` and `data/processed/demo/edge-cases/`.
+
+| Check | Result |
+|---|---|
+| `GET /api/health` | 200 `{"status":"ok","model_loaded":true}` (field exists only in the new code) |
+| Frontend root | 200, title "Rodent Behavior Analysis" |
+| Valid 100 s clip, predict | 200 in 1.1 s |
+| 2 s clip | 422 "only 2.0 s ... at least 3 s is needed" |
+| 5 s clip | 200 with "Short recording (5.0 s)" warning |
+| 30 s clip, 3-frame gap | 200 with "filled by interpolation" warning |
+| 30 s clip, 30-frame gap | 422 naming `ear_left`, frames 100-129 |
+| CSV text in a `.json` file | 415 "looks like CSV" |
+| Fake video | 415 "not valid JSON" |
+| 6,000-frame clip (3.78 MB), predict | 200 in 2.5 s including upload |
+| Compare 5 s vs 100 s | 200, Recording A short-clip warning |
+| Compare two 100 s demo clips | 200, `durations` present, no warnings |
+
+Not verified in production:
+
+* **UI behavior in a browser:** the checks above exercised the API only. Client-side file checks, the combined-size block
+  in Compare, duration/caution notices and the Detail view rendering of a long result (#22, rendering part) still need a
+  manual look. The API half of #22 is fine (2.5 s for 6,000 frames).
+* The platform's 4.5 MB request cap (non-JSON 413) was not triggered.
