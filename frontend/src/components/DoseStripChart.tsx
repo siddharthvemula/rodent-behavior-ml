@@ -6,6 +6,7 @@ import {
   niceMax,
   type DoseGroup,
   type MetricSpec,
+  type MouseMetrics,
 } from '../lib/openField'
 
 const W = 420
@@ -14,9 +15,9 @@ const M = { top: 12, right: 12, bottom: 50, left: 68 }
 const PLOT_W = W - M.left - M.right
 const PLOT_H = H - M.top - M.bottom
 
-interface Props {
-  readonly metric: MetricSpec
-  readonly groups: readonly DoseGroup[]
+interface Props<T extends MouseMetrics> {
+  readonly metric: MetricSpec<T>
+  readonly groups: readonly DoseGroup<T>[]
 }
 
 interface Hover {
@@ -26,9 +27,9 @@ interface Hover {
 }
 
 /** One metric: every mouse as a dot per dose group, with the group mean and median marked. */
-export function DoseStripChart({ metric, groups }: Props) {
+export function DoseStripChart<T extends MouseMetrics>({ metric, groups }: Props<T>) {
   const [hover, setHover] = useState<Hover | null>(null)
-  const values = groups.flatMap((g) => g.mice.map((m) => m[metric.key]))
+  const values = groups.flatMap((g) => g.mice.map((m) => metric.value(m)))
   const max = metric.fixedMax ?? niceMax(Math.max(...values) * 1.05)
   // Max is 1/2/5 x 10^n (or 100), so these counts give round tick steps.
   const mantissa = max / 10 ** Math.floor(Math.log10(max))
@@ -50,13 +51,13 @@ export function DoseStripChart({ metric, groups }: Props) {
               <g key={t}>
                 <line className="pharm-grid" x1={M.left} x2={W - M.right} y1={y(v)} y2={y(v)} />
                 <text className="pharm-axis" x={M.left - 8} y={y(v)} textAnchor="end" dominantBaseline="middle">
-                  {metric.key === 'mean_speed_px_per_frame' ? v.toFixed(1) : Math.round(v).toLocaleString('en-US')}
+                  {metric.tickDecimals ? v.toFixed(metric.tickDecimals) : Math.round(v).toLocaleString('en-US')}
                 </text>
               </g>
             )
           })}
           {groups.map((g, i) => {
-            const vals = g.mice.map((m) => m[metric.key])
+            const vals = g.mice.map((m) => metric.value(m))
             const half = colW * 0.34
             return (
               <g key={g.dose}>
@@ -70,8 +71,8 @@ export function DoseStripChart({ metric, groups }: Props) {
                 <line className="pharm-mean" x1={cx(i) - half} x2={cx(i) + half} y1={y(mean(vals))} y2={y(mean(vals))} />
                 {g.mice.map((m, j) => {
                   const px = cx(i) + jitter(j, g.mice.length) * colW * 0.22
-                  const py = y(m[metric.key])
-                  const text = `${m.id} · ${g.label} · ${metric.format(m[metric.key])}`
+                  const py = y(metric.value(m))
+                  const text = `${m.id} · ${g.label} · ${metric.format(metric.value(m))}`
                   const show = () => setHover({ x: px / W, y: py / H, text })
                   return (
                     <g key={m.id} data-testid="mouse-dot" data-group={g.dose}>

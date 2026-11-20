@@ -15,13 +15,20 @@ export interface OpenFieldData {
   readonly mice: readonly MouseMetrics[]
 }
 
-export type MetricKey = 'distance_px' | 'center_pct' | 'mean_speed_px_per_frame'
+/** Per-mouse metrics from open_field_rich.json (phase B), merged onto the whole-session ones by animal id. */
+export interface RichMouse extends MouseMetrics {
+  readonly immobility_pct: number
+  readonly center_pct_moving: number
+}
 
-export interface MetricSpec {
-  readonly key: MetricKey
+export interface MetricSpec<T extends MouseMetrics = MouseMetrics> {
+  readonly key: string
   readonly title: string
   readonly unit: string
+  readonly value: (m: T) => number
   readonly format: (v: number) => string
+  /** Digits on the y-axis tick labels (default 0). */
+  readonly tickDecimals?: number
   /** Fixed axis max, when the metric has a natural one. */
   readonly fixedMax?: number
 }
@@ -31,12 +38,14 @@ export const METRICS: readonly MetricSpec[] = [
     key: 'distance_px',
     title: 'Total distance traveled',
     unit: 'pixels',
+    value: (m) => m.distance_px,
     format: (v) => `${Math.round(v).toLocaleString('en-US')} px`,
   },
   {
     key: 'center_pct',
     title: 'Time in center',
     unit: '% of recording',
+    value: (m) => m.center_pct,
     format: (v) => `${v.toFixed(1)}%`,
     fixedMax: 100,
   },
@@ -44,21 +53,43 @@ export const METRICS: readonly MetricSpec[] = [
     key: 'mean_speed_px_per_frame',
     title: 'Average speed',
     unit: 'pixels per frame',
+    value: (m) => m.mean_speed_px_per_frame,
     format: (v) => `${v.toFixed(2)} px/frame`,
+    tickDecimals: 1,
   },
 ]
 
-export interface DoseGroup {
+/** Phase B per-mouse metrics, shown as dots like the others. */
+export const METRICS_B: readonly MetricSpec<RichMouse>[] = [
+  {
+    key: 'immobility_pct',
+    title: 'Time immobile',
+    unit: '% of tracked time',
+    value: (m) => m.immobility_pct,
+    format: (v) => `${v.toFixed(1)}%`,
+    fixedMax: 100,
+  },
+  {
+    key: 'center_pct_moving',
+    title: 'Time in center while moving',
+    unit: '% of moving time',
+    value: (m) => m.center_pct_moving,
+    format: (v) => `${v.toFixed(1)}%`,
+    fixedMax: 100,
+  },
+]
+
+export interface DoseGroup<T extends MouseMetrics = MouseMetrics> {
   readonly dose: number
   readonly label: string
-  readonly mice: readonly MouseMetrics[]
+  readonly mice: readonly T[]
 }
 
 export function doseLabel(dose: number): string {
   return dose === 0 ? 'Saline' : `${dose} mg/kg`
 }
 
-export function groupByDose(mice: readonly MouseMetrics[]): DoseGroup[] {
+export function groupByDose<T extends MouseMetrics>(mice: readonly T[]): DoseGroup<T>[] {
   const doses = [...new Set(mice.map((m) => m.dose_mg_kg))].sort((a, b) => a - b)
   return doses.map((dose) => ({
     dose,
