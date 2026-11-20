@@ -58,6 +58,74 @@ def smooth_probs(probs: np.ndarray, window: int) -> np.ndarray:
     return (csum[window:window + len(probs)] - csum[:len(probs)]) / window
 
 
+def smooth_probs_per_class(probs: np.ndarray, windows: Tuple[int, ...]) -> np.ndarray:
+    """Like smooth_probs but each class column gets its own window (e.g. a long
+    one for `other`, a short one for the brief `investigation` bouts)."""
+    return np.stack([smooth_probs(probs[:, [k]], w)[:, 0] for k, w in enumerate(windows)], axis=1)
+
+
+def viterbi_decode(probs: np.ndarray, switch_penalty: float, eps: float = 1e-4) -> np.ndarray:
+    """Most likely label sequence under sum(log p_t[c_t]) - switch_penalty * (#class changes).
+
+    A one-parameter alternative to moving-average smoothing: it removes
+    flicker (a switch must "pay" `switch_penalty` nats of evidence) but, unlike
+    a fixed window, does not blur the edges of short bouts. penalty 0 is plain
+    argmax. Pure numpy, O(T * n_classes^2)."""
+    t, k = probs.shape
+    if t == 0:
+        return np.zeros(0, dtype=np.int64)
+    if switch_penalty <= 0:
+        return probs.argmax(1)
+    logp = np.log(np.clip(probs, eps, 1.0)).tolist()
+    score = list(logp[0])
+    back = [None] * t
+    rng_k = range(k)
+    for i in range(1, t):
+        # best and second-best previous state: a switch INTO c comes from the
+        # best state other than c (pay the penalty), staying in c is free.
+        a1 = max(rng_k, key=score.__getitem__)
+        m1 = score[a1]
+        a2 = max((j for j in rng_k if j != a1), key=score.__getitem__)
+        m2 = score[a2]
+        row, new = [0] * k, [0.0] * k
+        li = logp[i]
+        for c in rng_k:
+            j, other = (a2, m2) if c == a1 else (a1, m1)
+            other -= switch_penalty
+            if score[c] >= other:
+                row[c], new[c] = c, score[c] + li[c]
+            else:
+                row[c], new[c] = j, other + li[c]
+        back[i], score = row, new
+    path = np.empty(t, dtype=np.int64)
+    cur = max(rng_k, key=score.__getitem__)
+    path[-1] = cur
+    for i in range(t - 1, 0, -1):
+        cur = back[i][cur]
+        path[i - 1] = cur
+    return path
+
+
+def min_bout_filter(labels: np.ndarray, probs: np.ndarray, min_len: int) -> np.ndarray:
+    """Merge predicted runs shorter than `min_len` frames into a neighbouring
+    run (the adjacent class with the higher mean probability over the short
+    run), shortest first, until none are left."""
+    out = labels.copy()
+    if min_len <= 1 or len(out) == 0:
+        return out
+    while True:
+        bounds = np.flatnonzero(np.diff(out)) + 1
+        starts, ends = np.r_[0, bounds], np.r_[bounds, len(out)]
+        lens = ends - starts
+        if len(lens) == 1 or lens.min() >= min_len:
+            return out
+        j = int(lens.argmin())
+        s0, e0 = starts[j], ends[j]
+        cands = ([out[s0 - 1]] if j > 0 else []) + ([out[e0]] if j < len(lens) - 1 else [])
+        m = probs[s0:e0].mean(0)
+        out[s0:e0] = max(cands, key=lambda c: m[c])
+
+
 def save_model(clf: HistGradientBoostingClassifier, meta: Dict[str, Any], path: Path = MODEL_PATH) -> None:
     meta = {
         **meta,
