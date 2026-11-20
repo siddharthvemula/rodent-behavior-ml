@@ -12,46 +12,46 @@
     "other"
   ],
   "test_f1": {
-    "attack": 0.8195,
-    "investigation": 0.8497,
-    "mount": 0.9218,
+    "attack": 0.8252,
+    "investigation": 0.8488,
+    "mount": 0.9236,
     "other": 0.9523
   },
-  "test_macro_f1": 0.8858,
+  "test_macro_f1": 0.8875,
   "test_time_share_mae": {
-    "attack": 0.0073,
-    "investigation": 0.0288,
-    "mount": 0.0111,
-    "other": 0.0246
+    "attack": 0.0064,
+    "investigation": 0.0278,
+    "mount": 0.0106,
+    "other": 0.0244
   },
   "confusion_rows_true_cols_pred": [
     [
-      11098,
-      1152,
-      147,
-      233
+      11077,
+      1235,
+      131,
+      187
     ],
     [
-      2456,
-      51857,
-      1168,
-      5794
+      2287,
+      51823,
+      1123,
+      6042
     ],
     [
-      52,
-      1637,
-      29346,
-      813
+      0,
+      1752,
+      29293,
+      803
     ],
     [
-      857,
-      6049,
-      1108,
-      148340
+      886,
+      6023,
+      1006,
+      148439
     ]
   ],
   "baseline_macro_f1": {
     "always_other": 0.1868,
-    "shuffled_labels": 0.2384
+    "shuffled_labels": 0.2377
   }
 }

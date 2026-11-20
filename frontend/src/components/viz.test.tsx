@@ -139,7 +139,7 @@ describe('ModelTrust', () => {
     const rows = within(screen.getByRole('region', { name: /score and time-share error/i })).getAllByRole('row')
     expect(rows).toHaveLength(5)
     expect(within(rows[1]).getByRole('rowheader')).toHaveTextContent('Attack')
-    expect(rows[1].textContent).toMatch(/0\.82/)
+    expect(rows[1].textContent).toMatch(/0\.83/)
     const matrix = screen.getByRole('table', { name: /confusion matrix/i })
     expect(within(matrix).getAllByRole('row')).toHaveLength(6) // 2 header rows + 4
     // attack row: 11098 of 12630 frames were called attack
@@ -148,7 +148,7 @@ describe('ModelTrust', () => {
 
   it('calls out the highlighted behavior and admits its limits', () => {
     render(<ModelTrust highlight="attack" />)
-    expect(screen.getByText(/this result is about/i)).toHaveTextContent(/attack\. The model scored 0\.82/)
+    expect(screen.getByText(/this result is about/i)).toHaveTextContent(/attack\. The model scored 0\.83/)
     expect(screen.getByText(/one lab's setup/i)).toBeInTheDocument()
   })
 

@@ -65,8 +65,8 @@ Vercel Functions cap every request body at 4.5MB, with no way to raise it, this 
 - Source data: CalMS21 Task 1 (`task1_classic_classification.zip`, ~457 MB) from [CaltechDATA](https://data.caltech.edu/records/s0vdx-0k302). Cite the CalMS21 paper. Never commit raw data (`/data/raw/` is gitignored). Note the Caltech record page lists CalMS21 as CC BY 4.0, not the CC BY-NC-SA in PROJECT_PLAN.md; we're staying non-commercial and citing regardless.
 - Compare semantics: a control-vs-treated comparison is two separate dyadic recordings run through the classifier, diffing label frequencies. CalMS21 has no real treatment labels, so the demo compares two arbitrary recordings and must say so honestly.
 
-## Model status (updated Nov 18, migration to the real model)
-The backend serves a real model trained on CalMS21 Task 1: a class-balanced scikit-learn `HistGradientBoostingClassifier` over 210 keypoint-only per-frame features, with 1-second probability smoothing (code in `ml/`, copied to `backend/ml_model/`). Test-split macro-F1 is **0.886** (5-fold CV on train: 0.846 +- 0.014); `attack` is the weakest class (F1 0.82 test / 0.74 CV). See `ml/README.md` and `ml/metrics.json` for the full table, controls and caveats. The GRU/LSTM originally planned was not needed.
+## Model status (updated Nov 20)
+The backend serves a real model trained on CalMS21 Task 1: a class-balanced scikit-learn `HistGradientBoostingClassifier` over 391 keypoint-only per-frame features, with 1-second probability smoothing (code in `ml/`, copied to `backend/ml_model/`). Test-split macro-F1 is **0.887** (5-fold CV on train: 0.858 +- 0.011; test 95% CI over recordings 0.859-0.906); `attack` is the weakest class (F1 0.83 test / 0.75 CV). See `ml/README.md` and `ml/metrics.json` for the full table, controls and caveats. The GRU/LSTM originally planned was not needed.
 
 `backend/ml_model/` is a hand-maintained byte-for-byte copy of `ml/{features,model,preprocess,inference}.py` and `ml/model.joblib` (Vercel builds `backend/` independently, so it can't read `../ml/` at runtime). `backend/tests/test_ml_sync.py` fails CI if they drift.
 
