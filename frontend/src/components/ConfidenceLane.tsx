@@ -47,7 +47,7 @@ export function ConfidenceLane({ segments }: ConfidenceLaneProps) {
       : `${percent(profile.highShare)} of the recording is at ${percent(LOW_CONFIDENCE)} confidence or higher; ${profile.lowSegments} ${profile.lowSegments === 1 ? 'segment is' : 'segments are'} less certain (hatched above).`
 
   return (
-    <div className="conf-lane">
+    <div className="conf-lane" data-demo="confidence-lane">
       <div className="conf-lane__head">
         <span className="conf-lane__title">Model confidence</span>
         <span className="muted small conf-lane__summary">{summary}</span>

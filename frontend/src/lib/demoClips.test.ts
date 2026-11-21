@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import raw from '../data/demo_clips.json'
-import { clipById, demoClips, demoCompareIntervals, demoCompareResult, parseDemoClips } from './demoClips'
+import { clipById, demoCompareIntervals, demoCompareResult, parseDemoClips } from './demoClips'
+import { demoClips } from './demoData'
 
 const clone = () => JSON.parse(JSON.stringify(raw))
 
@@ -104,5 +105,32 @@ describe('adapters to the existing Compare components', () => {
     const i = demoCompareIntervals(demoClips)
     expect(i.level).toBe(0.95)
     expect(i.control.attack).toEqual(demoClips.compare_intervals.a.attack)
+  })
+})
+
+import { disagreementSpans } from './demoClips'
+
+describe('disagreementSpans', () => {
+  const seg = (a: number, b: number, l: string) => ({ start_time: a, end_time: b, behavior_label: l })
+
+  it('finds exactly the stretches where the labels differ, merged', () => {
+    const annotations = [seg(0, 4, 'other'), seg(4, 10, 'attack')]
+    const predictions = [{ ...seg(0, 6, 'other'), confidence: 0.9 }, { ...seg(6, 10, 'attack'), confidence: 0.9 }]
+    expect(disagreementSpans({ annotations, predictions })).toEqual([{ start: 4, end: 6 }])
+    expect(disagreementSpans({ annotations, predictions: annotations.map((s) => ({ ...s, confidence: 1 })) })).toEqual([])
+  })
+
+  it('ignores sub-frame rounding slivers between the two files', () => {
+    const annotations = [seg(0, 4.003, 'other'), seg(4.003, 10, 'attack')]
+    const predictions = [{ ...seg(0, 4, 'other'), confidence: 1 }, { ...seg(4, 10, 'attack'), confidence: 1 }]
+    expect(disagreementSpans({ annotations, predictions })).toEqual([])
+  })
+
+  it('agrees with the stored accuracy on the real clips (disagreement share = 1 - accuracy)', () => {
+    for (const c of demoClips.clips) {
+      const share = disagreementSpans(c).reduce((s, x) => s + (x.end - x.start), 0) / c.source.seconds
+      expect(share).toBeCloseTo(1 - c.agreement.accuracy, 1)
+      expect(Math.abs(share - (1 - c.agreement.accuracy))).toBeLessThan(0.012)
+    }
   })
 })

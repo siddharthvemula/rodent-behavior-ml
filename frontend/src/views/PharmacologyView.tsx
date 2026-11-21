@@ -50,7 +50,7 @@ export function PharmacologyView({ data = openField, stats = doseResponse, mice 
         used here.
       </p>
 
-      <section className="card" aria-labelledby="pharm-stats-heading">
+      <section className="card" data-demo="pharm-effects" aria-labelledby="pharm-stats-heading">
         <h2 id="pharm-stats-heading">How each dose compares with saline</h2>
         <p className="muted">
           Each chart shows how far a dose group is from saline, as an effect size (Hedges&rsquo; g, in standard

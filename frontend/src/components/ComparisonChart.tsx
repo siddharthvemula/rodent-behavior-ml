@@ -3,6 +3,7 @@ import { formatDifferenceRange } from '../lib/intervals'
 import { buildCompareRows } from '../lib/behaviors'
 import { ChangeChart } from './ChangeChart'
 import { ModelTrust } from './ModelTrust'
+import { lower, useRecordingNames } from '../lib/recordingNames'
 
 interface ComparisonChartProps {
   readonly result: CompareResult
@@ -16,6 +17,7 @@ const formatValue = (value: number) => value.toFixed(2)
 const formatDifference = (value: number) => `${value > 0 ? '+' : ''}${formatValue(value)}`
 
 export function ComparisonChart({ result, intervals = null }: ComparisonChartProps) {
+  const names = useRecordingNames()
   const rows = buildCompareRows(result)
   if (rows.length === 0) {
     return <p className="empty">No behaviors detected in either recording.</p>
@@ -32,8 +34,8 @@ export function ComparisonChart({ result, intervals = null }: ComparisonChartPro
         <thead>
           <tr>
             <th scope="col">Behavior</th>
-            <th scope="col" className="num">Recording A</th>
-            <th scope="col" className="num">Recording B</th>
+            <th scope="col" className="num">{names.a}</th>
+            <th scope="col" className="num">{names.b}</th>
             <th scope="col" className="num">Difference</th>
             {intervals && <th scope="col" className="num">95% range of difference</th>}
           </tr>
@@ -54,7 +56,7 @@ export function ComparisonChart({ result, intervals = null }: ComparisonChartPro
           ))}
         </tbody>
       </table>
-      <p className="muted footnote">Difference = recording B − recording A, as reported by the backend. This compares behavior between two recordings; it does not measure a treatment effect.</p>
+      <p className="muted footnote">Difference = {lower(names.b)} − {lower(names.a)}, as reported by the backend. This compares behavior between two recordings; it does not measure a treatment effect.</p>
       <ModelTrust highlight={focus} />
     </section>
   )

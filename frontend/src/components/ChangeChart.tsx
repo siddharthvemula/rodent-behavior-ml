@@ -5,6 +5,7 @@ import { behaviorInfo } from '../lib/behaviorInfo'
 import { axisTicks, changeAxisMax } from '../lib/changeScale'
 import { differenceVerdict, formatDifferenceRange, formatRange, verdictText } from '../lib/intervals'
 import { orderLabels, percent } from '../lib/summary'
+import { lower, useRecordingNames } from '../lib/recordingNames'
 
 interface ChangeChartProps {
   readonly result: CompareResult
@@ -29,6 +30,7 @@ const points = (difference: number) => Math.round(difference * 100)
  * mover is the longest line. Used in both the Summary and Detail views.
  */
 export function ChangeChart({ result, intervals = null, order = 'change', standout: standoutProp, showLegend = true, active = null, onActiveChange }: ChangeChartProps) {
+  const names = useRecordingNames()
   const sorted = buildCompareRows(result)
   if (sorted.length === 0) return null
   const rows = order === 'canonical' ? orderLabels(sorted.map((r) => r.label)).map((l) => sorted.find((r) => r.label === l)!) : sorted
@@ -39,11 +41,11 @@ export function ChangeChart({ result, intervals = null, order = 'change', stando
   const standout = standoutProp === undefined ? (points(rows[0].difference) !== 0 ? rows[0].label : null) : standoutProp
 
   return (
-    <figure className={`change${intervals ? ' change--ranges' : ''}`} aria-label="Change from recording A to recording B">
+    <figure className={`change${intervals ? ' change--ranges' : ''}`} aria-label={`Change from ${lower(names.a)} to ${lower(names.b)}`}>
       {showLegend && (
         <ul className="change__legend" aria-hidden="true">
-          <li><span className="change__dot change__dot--control" /> Recording A</li>
-          <li><span className="change__dot change__dot--treated" /> Recording B</li>
+          <li><span className="change__dot change__dot--control" /> {names.a}</li>
+          <li><span className="change__dot change__dot--treated" /> {names.b}</li>
         </ul>
       )}
       <div className="change__rows" role="group" aria-label="Behaviors">
@@ -67,7 +69,7 @@ export function ChangeChart({ result, intervals = null, order = 'change', stando
               onFocus={onActiveChange && (() => onActiveChange(r.label))}
               onBlur={onActiveChange && (() => onActiveChange(null))}
               tabIndex={0}
-              aria-label={`${info.title}: recording A ${percent(r.control)}, recording B ${percent(r.treated)}, ${diff === 0 ? 'no difference' : `${Math.abs(diff)} percentage points ${diff > 0 ? 'higher' : 'lower'} in recording B`}${isStandout ? '. Biggest change' : ''}${dRange && verdict ? `. 95% range for the difference ${formatDifferenceRange(dRange)}, ${verdictText(verdict)}` : ''}`}
+              aria-label={`${info.title}: ${lower(names.a)} ${percent(r.control)}, ${lower(names.b)} ${percent(r.treated)}, ${diff === 0 ? 'no difference' : `${Math.abs(diff)} percentage points ${diff > 0 ? 'higher' : 'lower'} in ${lower(names.b)}`}${isStandout ? '. Biggest change' : ''}${dRange && verdict ? `. 95% range for the difference ${formatDifferenceRange(dRange)}, ${verdictText(verdict)}` : ''}`}
               style={{ ['--beh' as string]: colors[r.label] } as CSSProperties}
             >
               <span className="change__name" aria-hidden="true">

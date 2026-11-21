@@ -6,7 +6,7 @@ import { TimelineSummary } from '../components/TimelineSummary'
 import { FilePicker } from '../components/FilePicker'
 import { Notices } from '../components/Notices'
 import { StatusMessage } from '../components/StatusMessage'
-import { useAsyncTask } from '../lib/useAsyncTask'
+import { useAsyncTask, type TaskState } from '../lib/useAsyncTask'
 import type { ViewMode } from '../lib/useViewMode'
 
 interface TimelineViewProps {
@@ -14,11 +14,14 @@ interface TimelineViewProps {
   /** Which presentation to show for the result; the data is the same either way. */
   readonly mode?: ViewMode
   readonly onShowDetail?: () => void
+  /** A result to show as if it had just been computed (the guided demo); hides the upload form. */
+  readonly preloaded?: PredictOutcome | null
 }
 
-export function TimelineView({ api = defaultApi, mode = 'detail', onShowDetail }: TimelineViewProps) {
+export function TimelineView({ api = defaultApi, mode = 'detail', onShowDetail, preloaded = null }: TimelineViewProps) {
   const [file, setFile] = useState<File | null>(null)
-  const { state, run, reset } = useAsyncTask<PredictOutcome>()
+  const { state: ownState, run, reset } = useAsyncTask<PredictOutcome>()
+  const state: TaskState<PredictOutcome> = preloaded ? { status: 'success', data: preloaded } : ownState
   const isLoading = state.status === 'loading'
 
   function handleFileChange(next: File | null) {
@@ -38,6 +41,7 @@ export function TimelineView({ api = defaultApi, mode = 'detail', onShowDetail }
         <p className="muted">Classify behaviors over time for a single recording.</p>
       </header>
 
+      {!preloaded && (
       <form className="card form" onSubmit={handleSubmit}>
         <FilePicker
           label="Keypoints file (JSON)"
@@ -49,6 +53,7 @@ export function TimelineView({ api = defaultApi, mode = 'detail', onShowDetail }
           {isLoading ? 'Predicting…' : 'Predict behaviors'}
         </button>
       </form>
+      )}
 
       <StatusMessage state={state} loadingText="Running behavior classifier…" />
       {state.status === 'success' && (

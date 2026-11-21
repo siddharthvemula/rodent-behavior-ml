@@ -41,7 +41,7 @@ export function TimelineSummary({ segments, onShowDetail }: TimelineSummaryProps
   const keyLabels = orderLabels(totals.map((t) => t.label))
 
   return (
-    <section className="summary" aria-label="Summary of this recording" style={{ ['--beh' as string]: colors[top.label] }}>
+    <section className="summary" data-demo="timeline-summary" aria-label="Summary of this recording" style={{ ['--beh' as string]: colors[top.label] }}>
       <Hero
         label={summary.leadLabel}
         color={colors[summary.leadLabel]}

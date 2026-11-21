@@ -23,7 +23,7 @@ export function ModelTrust({ highlight = null, metrics = modelMetrics }: ModelTr
   const info = highlighted ? behaviorInfo(highlighted) : null
 
   return (
-    <details className="trust">
+    <details className="trust" data-demo="model-trust">
       <summary>
         <span className="trust__title">How much to trust this</span>
         <span className="muted small">

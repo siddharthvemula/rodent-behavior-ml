@@ -8,7 +8,8 @@ import { Notices } from '../components/Notices'
 import { StatusMessage } from '../components/StatusMessage'
 import { describeDurations } from '../lib/compareNotes'
 import { checkFilePair, isSameFile } from '../lib/fileChecks'
-import { useAsyncTask } from '../lib/useAsyncTask'
+import { DEFAULT_NAMES, RecordingNamesContext, type RecordingNames } from '../lib/recordingNames'
+import { useAsyncTask, type TaskState } from '../lib/useAsyncTask'
 import type { ViewMode } from '../lib/useViewMode'
 
 interface CompareViewProps {
@@ -16,11 +17,15 @@ interface CompareViewProps {
   /** Which presentation to show for the result; the data is the same either way. */
   readonly mode?: ViewMode
   readonly onShowDetail?: () => void
+  /** A result to show as if it had just been computed (the guided demo); hides the upload form. */
+  readonly preloaded?: CompareOutcome | null
+  /** What to call the two recordings on screen (default "Recording A" / "Recording B"). */
+  readonly names?: RecordingNames
 }
 
 /** Recording lengths, a length caution when they differ a lot, and the backend's warnings. */
-function CompareNotes({ outcome }: { readonly outcome: CompareOutcome }) {
-  const note = describeDurations(outcome.durations)
+function CompareNotes({ outcome, names }: { readonly outcome: CompareOutcome; readonly names: RecordingNames }) {
+  const note = describeDurations(outcome.durations, names)
   return (
     <>
       {note && <p className="muted small">{note.line}</p>}
@@ -29,10 +34,11 @@ function CompareNotes({ outcome }: { readonly outcome: CompareOutcome }) {
   )
 }
 
-export function CompareView({ api = defaultApi, mode = 'detail', onShowDetail }: CompareViewProps) {
+export function CompareView({ api = defaultApi, mode = 'detail', onShowDetail, preloaded = null, names = DEFAULT_NAMES }: CompareViewProps) {
   const [control, setControl] = useState<File | null>(null)
   const [treated, setTreated] = useState<File | null>(null)
-  const { state, run, reset } = useAsyncTask<CompareOutcome>()
+  const { state: ownState, run, reset } = useAsyncTask<CompareOutcome>()
+  const state: TaskState<CompareOutcome> = preloaded ? { status: 'success', data: preloaded } : ownState
   const isLoading = state.status === 'loading'
   const pairProblem = control && treated ? checkFilePair(control, treated) : null
   const sameFile = control && treated ? isSameFile(control, treated) : false
@@ -58,6 +64,7 @@ export function CompareView({ api = defaultApi, mode = 'detail', onShowDetail }:
         </p>
       </header>
 
+      {!preloaded && (
       <form className="card form" onSubmit={handleSubmit}>
         <div className="form__pair">
           <FilePicker label="Recording A keypoints (JSON)" onChange={selectFile(setControl)} disabled={isLoading} />
@@ -81,11 +88,13 @@ export function CompareView({ api = defaultApi, mode = 'detail', onShowDetail }:
           {isLoading ? 'Comparing…' : 'Compare behaviors'}
         </button>
       </form>
+      )}
 
       <StatusMessage state={state} loadingText="Classifying both recordings…" />
       {state.status === 'success' && (
+        <RecordingNamesContext.Provider value={names}>
         <div key={mode} className="mode-enter">
-          <CompareNotes outcome={state.data} />
+          <CompareNotes outcome={state.data} names={names} />
           {mode === 'summary' ? (
             <CompareSummary result={state.data.result} intervals={state.data.intervals} onShowDetail={onShowDetail} />
           ) : (
@@ -94,6 +103,7 @@ export function CompareView({ api = defaultApi, mode = 'detail', onShowDetail }:
             </div>
           )}
         </div>
+        </RecordingNamesContext.Provider>
       )}
     </div>
   )

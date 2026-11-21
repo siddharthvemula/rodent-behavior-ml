@@ -20,7 +20,7 @@ export function BehaviorTimeline({ segments }: BehaviorTimelineProps) {
   const colors = buildColorMap(segments.map((s) => s.behavior_label))
 
   return (
-    <section className="result" aria-label="Predicted behavior timeline">
+    <section className="result" data-demo="timeline-detail" aria-label="Predicted behavior timeline">
       <ul className="legend">
         {totals.map((t) => (
           <li key={t.label}>

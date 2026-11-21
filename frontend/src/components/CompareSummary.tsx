@@ -9,6 +9,7 @@ import { BehaviorKey } from './BehaviorKey'
 import { ChangeChart } from './ChangeChart'
 import { Donut } from './Donut'
 import { Hero, HeroStat } from './Hero'
+import { lower, tail, useRecordingNames } from '../lib/recordingNames'
 
 interface CompareSummaryProps {
   readonly result: CompareResult
@@ -23,6 +24,7 @@ const enter = (step: number) => ({ ['--s' as string]: step }) as CSSProperties
 
 /** Plain-language finding plus animated side-by-side bars and donuts. */
 export function CompareSummary({ result, intervals = null, onShowDetail }: CompareSummaryProps) {
+  const names = useRecordingNames()
   // The behavior highlighted across bars and donuts (hover / focus), or null.
   const [active, setActive] = useState<string | null>(null)
 
@@ -44,11 +46,11 @@ export function CompareSummary({ result, intervals = null, onShowDetail }: Compa
   const slices = (group: Group) => rows.map((r) => ({ label: r.label, value: r[group], color: colors[r.label] }))
 
   return (
-    <section className="summary" aria-label="Summary of two-recording comparison" style={{ ['--beh' as string]: lead ? colors[lead.label] : 'var(--accent)' }}>
+    <section className="summary" data-demo="compare-result" aria-label="Summary of two-recording comparison" style={{ ['--beh' as string]: lead ? colors[lead.label] : 'var(--accent)' }}>
       <Hero
         label={lead?.label ?? 'other'}
         color={lead ? colors[lead.label] : 'var(--text-muted)'}
-        eyebrow="Key finding · recording A → B"
+        eyebrow={`Key finding · ${lower(names.a)} → ${tail(names.b)}`}
         headline={summary.headline}
         context={summary.context}
         extra={summary.alsoNoted}
@@ -57,8 +59,8 @@ export function CompareSummary({ result, intervals = null, onShowDetail }: Compa
             <HeroStat
               label="Biggest change"
               unit="pts"
-              caption={`${behaviorInfo(lead.label).title}, recording A → B`}
-              spoken={`${Math.abs(leadPoints)} percentage points ${leadPoints >= 0 ? 'higher' : 'lower'} in recording B`}
+              caption={`${behaviorInfo(lead.label).title}, ${lower(names.a)} → ${tail(names.b)}`}
+              spoken={`${Math.abs(leadPoints)} percentage points ${leadPoints >= 0 ? 'higher' : 'lower'} in ${lower(names.b)}`}
             >
               <AnimatedPoints difference={lead.difference} delayMs={HERO_COUNT_MS} />
             </HeroStat>
@@ -83,8 +85,8 @@ export function CompareSummary({ result, intervals = null, onShowDetail }: Compa
             <p className="muted small">Each dot is the share of a recording spent on that behavior; the longer the line, the bigger the difference</p>
           </div>
           <ul className="key" aria-label="Legend">
-            <li><span className="key__swatch key__swatch--control" aria-hidden="true" /> Recording A</li>
-            <li><span className="key__swatch key__swatch--treated" aria-hidden="true" /> Recording B</li>
+            <li><span className="key__swatch key__swatch--control" aria-hidden="true" /> {names.a}</li>
+            <li><span className="key__swatch key__swatch--treated" aria-hidden="true" /> {names.b}</li>
           </ul>
         </header>
 
@@ -93,8 +95,8 @@ export function CompareSummary({ result, intervals = null, onShowDetail }: Compa
 
           <aside className="donuts enter-at" style={{ ['--enter-delay' as string]: `${rowDelay(0)}ms` } as CSSProperties} aria-label="Share of each recording">
             <div className="donuts__pair">
-              <Donut name="Recording A" slices={slices('control')} defaultLabel={defaultLabel} active={active} onActiveChange={setActive} delayMs={rowDelay(0) + 150} />
-              <Donut name="Recording B" slices={slices('treated')} defaultLabel={defaultLabel} active={active} onActiveChange={setActive} delayMs={rowDelay(0) + 300} />
+              <Donut name={names.a} slices={slices('control')} defaultLabel={defaultLabel} active={active} onActiveChange={setActive} delayMs={rowDelay(0) + 150} />
+              <Donut name={names.b} slices={slices('treated')} defaultLabel={defaultLabel} active={active} onActiveChange={setActive} delayMs={rowDelay(0) + 300} />
             </div>
             <BehaviorKey labels={labels} colors={colors} active={active} onActiveChange={setActive} />
           </aside>
