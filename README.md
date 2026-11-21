@@ -11,7 +11,7 @@ Built by a 3-person team, due Nov 28, 2026.
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) — stack, folder layout, API contract. The contract is binding, propose changes instead of silently deviating.
 
 ## Layout
-- [`/ml`](./ml) — dataset pipeline and model (pose-keypoint classifier, scikit-learn; test macro-F1 0.886 on CalMS21 Task 1, see `ml/README.md`)
+- [`/ml`](./ml) — dataset pipeline and model (pose-keypoint classifier, scikit-learn; test macro-F1 0.887 on CalMS21 Task 1, see `ml/README.md`)
 - [`/backend`](./backend) — FastAPI service serving predictions and comparisons
 - [`/frontend`](./frontend) — React (Vite) app
 - Deployed on Vercel, auto-deploys from `main`
