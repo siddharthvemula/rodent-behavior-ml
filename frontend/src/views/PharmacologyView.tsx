@@ -263,7 +263,7 @@ export function PharmacologyView({ data = openField, stats = doseResponse, mice 
             </li>
             <li>
               Frames with tracking likelihood below {data.parameters.min_likelihood} are dropped (gaps of 5 frames or
-              fewer are interpolated), and any single-frame move over {data.parameters.max_step_px} px is treated as a
+              fewer are interpolated), and any single-frame move over {data.parameters.max_step_px} px is counted as a
               tracking jump and excluded.
             </li>
             <li>

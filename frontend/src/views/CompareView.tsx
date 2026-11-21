@@ -74,8 +74,8 @@ export function CompareView({ api = defaultApi, mode = 'detail', onShowDetail }:
           </p>
         )}
         <p className="muted small">
-          Demo data note: the demo compares two real CalMS21 recordings as a stand-in for control and treatment
-          groups. This project has no real drug-trial data.
+          Demo data note: the demo compares two arbitrary real CalMS21 recordings. They are not groups from an
+          experiment, and this project has no real drug-trial data.
         </p>
         <button type="submit" className="button" disabled={!control || !treated || isLoading || pairProblem !== null}>
           {isLoading ? 'Comparing…' : 'Compare behaviors'}

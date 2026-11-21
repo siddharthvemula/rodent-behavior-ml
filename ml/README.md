@@ -86,6 +86,7 @@ pytest ml/tests
   inference.py       # predict_behaviors / compare_behaviors (what the backend calls)
   model.joblib, metrics.json
   export_clip.py     # slice a CalMS21 recording into an upload-ready JSON for demos
+  export_demo_clips.py  # precompute predictions + annotations for two test-split clips (guided demo data)
   tests/             # pytest, run in CI
 ```
 
