@@ -117,7 +117,7 @@ def test_compare_rejects_video_with_415_naming_the_field():
         },
     )
     assert resp.status_code == 415
-    assert "treated" in resp.json()["detail"]
+    assert "Recording B" in resp.json()["detail"]
     assert len(jobs) == before
 
 
@@ -204,7 +204,7 @@ def test_compare_rejects_malformed_keypoints_with_422():
         },
     )
     assert resp.status_code == 422
-    assert "treated" in resp.json()["detail"]
+    assert "Recording B" in resp.json()["detail"]
 
 
 # ---------------------------------------------------------------- hardening (HARDENING_PLAN.md)
@@ -332,9 +332,20 @@ def test_compare_errors_use_recording_a_b_names():
     bad = json.dumps({"frames": [{"nose": [0, 0]}]}).encode()
     resp = _compare(_keypoints_json(120), bad)
     assert resp.status_code == 422
-    assert "Recording B (treated)" in resp.json()["detail"]
+    assert "Recording B" in resp.json()["detail"]
     resp = _compare(bad, _keypoints_json(120))
-    assert "Recording A (control)" in resp.json()["detail"]
+    assert "Recording A" in resp.json()["detail"]
+
+
+def test_error_and_warning_text_never_uses_two_group_wording():
+    """These strings are shown to users as-is. The two recordings are A and B, never a control and a treated group."""
+    import re
+
+    bad = json.dumps({"frames": [{"nose": [0, 0]}]}).encode()
+    texts = [_compare(_keypoints_json(120), bad).json()["detail"], _compare(bad, _keypoints_json(120)).json()["detail"]]
+    ok = _compare(_keypoints_json(120), _keypoints_json(120)).json()
+    texts += ok.get("warnings", [])
+    assert all(not re.search(r"control|treat", t, re.IGNORECASE) for t in texts), texts
 
 
 def test_compare_reports_durations_and_prefixed_warnings():

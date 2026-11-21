@@ -17,7 +17,7 @@ Built by a 3-person team, due Nov 28, 2026.
 - Deployed on Vercel, auto-deploys from `main`
 
 ## Data
-Built on [CalMS21](https://data.caltech.edu/records/s0vdx-0k302) Task 1 (Sun et al., 2021, "The Multi-Agent Behavior Dataset: Mouse Dyadic Social Interactions"), listed as CC BY 4.0 on CaltechDATA; we stay non-commercial and cite it regardless. The raw data is not committed to this repo, `python ml/download_data.py` fetches it.
+Built on [CalMS21](https://data.caltech.edu/records/s0vdx-0k302) Task 1 (Sun et al., 2021, "The Multi-Agent Behavior Dataset: Mouse Dyadic Social Interactions"), listed as CC BY 4.0 on CaltechDATA; we stay non-commercial and cite it regardless. The raw data is not committed to this repo, `python ml/download_data.py` fetches it. The one exception is [`frontend/src/data/demo_clips.json`](frontend/src/data/demo_clips.json): CalMS21's own annotations for the first 100 s of two **test-split** recordings (shown in the guided demo as Clip A and Clip B), stored next to this project's model predictions for the same frames. The annotations are CalMS21's, used under CC BY 4.0 (Sun et al., 2021) and only changed by being run-length encoded; the file records the license, the source and what was changed, and anything that displays them must show that attribution. The predictions and agreement numbers are ours. `python ml/export_demo_clips.py <clip A> <clip B>` regenerates the file and refuses any clip that is not a verbatim slice of a test-split recording, so the demo can never show predictions on training data. A test fails if the model is retrained without regenerating it.
 
 ### Pharmacology demo dataset (separate from CalMS21)
 The "Pharmacology demo" tab uses real yohimbine dose groups (saline, 1, 3 and 6 mg/kg; 8 mice each) from:

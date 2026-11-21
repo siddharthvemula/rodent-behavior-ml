@@ -111,5 +111,5 @@ def test_not_json_and_binary_are_415():
 
 def test_label_is_used_in_messages():
     with pytest.raises(UploadRejected) as e:
-        validate_recording(b'{"frames": []}', "Recording B (treated)")
-    assert "Recording B (treated)" in e.value.detail
+        validate_recording(b'{"frames": []}', "Recording B")
+    assert "Recording B" in e.value.detail

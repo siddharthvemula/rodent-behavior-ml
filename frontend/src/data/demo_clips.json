@@ -1,0 +1,1036 @@
+{
+ "_source": "ml/export_demo_clips.py; do not edit by hand",
+ "attribution": {
+  "dataset": "CalMS21 Task 1 (Caltech Mouse Social Interactions)",
+  "citation": "Sun et al. (2021), \"The Multi-Agent Behavior Dataset: Mouse Dyadic Social Interactions\"",
+  "url": "https://data.caltech.edu/records/s0vdx-0k302",
+  "license": "CC BY 4.0",
+  "license_url": "https://creativecommons.org/licenses/by/4.0/",
+  "changes": "Annotations are the dataset's frame labels for the first 100 seconds (3,000 frames) of two test-split recordings, converted to run-length segments. Predictions, agreement statistics and the comparison are ours, produced by this project's classifier, and are not part of the dataset."
+ },
+ "model": {
+  "sha256": "010f8770e7e0daa46e7802db35d7d2c0f120aea675ee53ce155845973edfcf92",
+  "n_features": 391,
+  "smoothing_window": 31,
+  "sklearn_version": "1.7.1"
+ },
+ "behaviors": [
+  "attack",
+  "investigation",
+  "mount",
+  "other"
+ ],
+ "clips": [
+  {
+   "id": "clip_a",
+   "label": "Clip A",
+   "source": {
+    "split": "test",
+    "recording": "task1/test/mouse071_task1_annotator1",
+    "start_frame": 0,
+    "frames": 3000,
+    "seconds": 100.0,
+    "frame_rate": 30.0
+   },
+   "annotations": [
+    {
+     "start_time": 0.0,
+     "end_time": 0.033,
+     "behavior_label": "other"
+    },
+    {
+     "start_time": 0.033,
+     "end_time": 12.2,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 12.2,
+     "end_time": 13.033,
+     "behavior_label": "other"
+    },
+    {
+     "start_time": 13.033,
+     "end_time": 25.567,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 25.567,
+     "end_time": 26.4,
+     "behavior_label": "other"
+    },
+    {
+     "start_time": 26.4,
+     "end_time": 32.167,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 32.167,
+     "end_time": 32.7,
+     "behavior_label": "other"
+    },
+    {
+     "start_time": 32.7,
+     "end_time": 42.633,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 42.633,
+     "end_time": 44.267,
+     "behavior_label": "other"
+    },
+    {
+     "start_time": 44.267,
+     "end_time": 48.567,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 48.567,
+     "end_time": 49.2,
+     "behavior_label": "other"
+    },
+    {
+     "start_time": 49.2,
+     "end_time": 54.8,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 54.8,
+     "end_time": 61.767,
+     "behavior_label": "other"
+    },
+    {
+     "start_time": 61.767,
+     "end_time": 66.667,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 66.667,
+     "end_time": 69.933,
+     "behavior_label": "mount"
+    },
+    {
+     "start_time": 69.933,
+     "end_time": 74.467,
+     "behavior_label": "other"
+    },
+    {
+     "start_time": 74.467,
+     "end_time": 75.8,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 75.8,
+     "end_time": 78.033,
+     "behavior_label": "mount"
+    },
+    {
+     "start_time": 78.033,
+     "end_time": 78.567,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 78.567,
+     "end_time": 83.167,
+     "behavior_label": "other"
+    },
+    {
+     "start_time": 83.167,
+     "end_time": 84.167,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 84.167,
+     "end_time": 92.767,
+     "behavior_label": "mount"
+    },
+    {
+     "start_time": 92.767,
+     "end_time": 93.833,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 93.833,
+     "end_time": 99.0,
+     "behavior_label": "other"
+    },
+    {
+     "start_time": 99.0,
+     "end_time": 99.6,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 99.6,
+     "end_time": 100.0,
+     "behavior_label": "mount"
+    }
+   ],
+   "predictions": [
+    {
+     "start_time": 0.0,
+     "end_time": 53.33,
+     "behavior_label": "investigation",
+     "confidence": 0.97
+    },
+    {
+     "start_time": 53.33,
+     "end_time": 54.03,
+     "behavior_label": "mount",
+     "confidence": 0.6
+    },
+    {
+     "start_time": 54.03,
+     "end_time": 54.77,
+     "behavior_label": "investigation",
+     "confidence": 0.6
+    },
+    {
+     "start_time": 54.77,
+     "end_time": 61.73,
+     "behavior_label": "other",
+     "confidence": 0.96
+    },
+    {
+     "start_time": 61.73,
+     "end_time": 66.4,
+     "behavior_label": "investigation",
+     "confidence": 0.94
+    },
+    {
+     "start_time": 66.4,
+     "end_time": 70.1,
+     "behavior_label": "mount",
+     "confidence": 0.92
+    },
+    {
+     "start_time": 70.1,
+     "end_time": 74.4,
+     "behavior_label": "other",
+     "confidence": 0.94
+    },
+    {
+     "start_time": 74.4,
+     "end_time": 75.7,
+     "behavior_label": "investigation",
+     "confidence": 0.76
+    },
+    {
+     "start_time": 75.7,
+     "end_time": 78.3,
+     "behavior_label": "mount",
+     "confidence": 0.85
+    },
+    {
+     "start_time": 78.3,
+     "end_time": 83.23,
+     "behavior_label": "other",
+     "confidence": 0.93
+    },
+    {
+     "start_time": 83.23,
+     "end_time": 83.73,
+     "behavior_label": "investigation",
+     "confidence": 0.5
+    },
+    {
+     "start_time": 83.73,
+     "end_time": 93.63,
+     "behavior_label": "mount",
+     "confidence": 0.97
+    },
+    {
+     "start_time": 93.63,
+     "end_time": 99.1,
+     "behavior_label": "other",
+     "confidence": 0.92
+    },
+    {
+     "start_time": 99.1,
+     "end_time": 99.27,
+     "behavior_label": "investigation",
+     "confidence": 0.4
+    },
+    {
+     "start_time": 99.27,
+     "end_time": 100.0,
+     "behavior_label": "mount",
+     "confidence": 0.71
+    }
+   ],
+   "agreement": {
+    "frames": 3000,
+    "accuracy": 0.916,
+    "per_class_f1": {
+     "attack": null,
+     "investigation": 0.9316,
+     "mount": 0.9025,
+     "other": 0.8855
+    },
+    "macro_f1_present_classes": 0.9065,
+    "confusion_rows_annotated_cols_predicted": [
+     [
+      0,
+      0,
+      0,
+      0
+     ],
+     [
+      0,
+      1683,
+      89,
+      20
+     ],
+     [
+      0,
+      0,
+      435,
+      0
+     ],
+     [
+      0,
+      138,
+      5,
+      630
+     ]
+    ],
+    "time_share_annotated": {
+     "attack": 0.0,
+     "investigation": 0.5973,
+     "mount": 0.145,
+     "other": 0.2577
+    },
+    "time_share_predicted": {
+     "attack": 0.0,
+     "investigation": 0.607,
+     "mount": 0.1763,
+     "other": 0.2167
+    }
+   }
+  },
+  {
+   "id": "clip_b",
+   "label": "Clip B",
+   "source": {
+    "split": "test",
+    "recording": "task1/test/mouse076_task1_annotator1",
+    "start_frame": 0,
+    "frames": 3000,
+    "seconds": 100.0,
+    "frame_rate": 30.0
+   },
+   "annotations": [
+    {
+     "start_time": 0.0,
+     "end_time": 0.433,
+     "behavior_label": "other"
+    },
+    {
+     "start_time": 0.433,
+     "end_time": 0.767,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 0.767,
+     "end_time": 4.167,
+     "behavior_label": "attack"
+    },
+    {
+     "start_time": 4.167,
+     "end_time": 5.233,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 5.233,
+     "end_time": 6.5,
+     "behavior_label": "attack"
+    },
+    {
+     "start_time": 6.5,
+     "end_time": 8.2,
+     "behavior_label": "other"
+    },
+    {
+     "start_time": 8.2,
+     "end_time": 8.567,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 8.567,
+     "end_time": 10.633,
+     "behavior_label": "attack"
+    },
+    {
+     "start_time": 10.633,
+     "end_time": 11.2,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 11.2,
+     "end_time": 11.5,
+     "behavior_label": "other"
+    },
+    {
+     "start_time": 11.5,
+     "end_time": 11.7,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 11.7,
+     "end_time": 11.867,
+     "behavior_label": "other"
+    },
+    {
+     "start_time": 11.867,
+     "end_time": 12.1,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 12.1,
+     "end_time": 13.8,
+     "behavior_label": "other"
+    },
+    {
+     "start_time": 13.8,
+     "end_time": 15.0,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 15.0,
+     "end_time": 20.867,
+     "behavior_label": "other"
+    },
+    {
+     "start_time": 20.867,
+     "end_time": 21.1,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 21.1,
+     "end_time": 25.3,
+     "behavior_label": "attack"
+    },
+    {
+     "start_time": 25.3,
+     "end_time": 26.2,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 26.2,
+     "end_time": 27.567,
+     "behavior_label": "attack"
+    },
+    {
+     "start_time": 27.567,
+     "end_time": 28.533,
+     "behavior_label": "other"
+    },
+    {
+     "start_time": 28.533,
+     "end_time": 30.2,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 30.2,
+     "end_time": 32.233,
+     "behavior_label": "other"
+    },
+    {
+     "start_time": 32.233,
+     "end_time": 32.833,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 32.833,
+     "end_time": 36.833,
+     "behavior_label": "other"
+    },
+    {
+     "start_time": 36.833,
+     "end_time": 37.767,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 37.767,
+     "end_time": 44.033,
+     "behavior_label": "attack"
+    },
+    {
+     "start_time": 44.033,
+     "end_time": 49.067,
+     "behavior_label": "other"
+    },
+    {
+     "start_time": 49.067,
+     "end_time": 49.2,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 49.2,
+     "end_time": 51.467,
+     "behavior_label": "attack"
+    },
+    {
+     "start_time": 51.467,
+     "end_time": 51.833,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 51.833,
+     "end_time": 54.867,
+     "behavior_label": "other"
+    },
+    {
+     "start_time": 54.867,
+     "end_time": 55.533,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 55.533,
+     "end_time": 58.767,
+     "behavior_label": "attack"
+    },
+    {
+     "start_time": 58.767,
+     "end_time": 58.933,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 58.933,
+     "end_time": 60.1,
+     "behavior_label": "other"
+    },
+    {
+     "start_time": 60.1,
+     "end_time": 60.733,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 60.733,
+     "end_time": 62.633,
+     "behavior_label": "attack"
+    },
+    {
+     "start_time": 62.633,
+     "end_time": 64.267,
+     "behavior_label": "other"
+    },
+    {
+     "start_time": 64.267,
+     "end_time": 64.9,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 64.9,
+     "end_time": 69.9,
+     "behavior_label": "attack"
+    },
+    {
+     "start_time": 69.9,
+     "end_time": 71.467,
+     "behavior_label": "other"
+    },
+    {
+     "start_time": 71.467,
+     "end_time": 71.733,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 71.733,
+     "end_time": 77.433,
+     "behavior_label": "attack"
+    },
+    {
+     "start_time": 77.433,
+     "end_time": 78.067,
+     "behavior_label": "other"
+    },
+    {
+     "start_time": 78.067,
+     "end_time": 78.133,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 78.133,
+     "end_time": 78.867,
+     "behavior_label": "attack"
+    },
+    {
+     "start_time": 78.867,
+     "end_time": 80.067,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 80.067,
+     "end_time": 80.867,
+     "behavior_label": "attack"
+    },
+    {
+     "start_time": 80.867,
+     "end_time": 82.0,
+     "behavior_label": "other"
+    },
+    {
+     "start_time": 82.0,
+     "end_time": 82.667,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 82.667,
+     "end_time": 83.533,
+     "behavior_label": "attack"
+    },
+    {
+     "start_time": 83.533,
+     "end_time": 83.833,
+     "behavior_label": "other"
+    },
+    {
+     "start_time": 83.833,
+     "end_time": 84.6,
+     "behavior_label": "attack"
+    },
+    {
+     "start_time": 84.6,
+     "end_time": 85.167,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 85.167,
+     "end_time": 85.533,
+     "behavior_label": "attack"
+    },
+    {
+     "start_time": 85.533,
+     "end_time": 86.4,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 86.4,
+     "end_time": 86.767,
+     "behavior_label": "attack"
+    },
+    {
+     "start_time": 86.767,
+     "end_time": 87.6,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 87.6,
+     "end_time": 95.333,
+     "behavior_label": "other"
+    },
+    {
+     "start_time": 95.333,
+     "end_time": 95.567,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 95.567,
+     "end_time": 96.167,
+     "behavior_label": "attack"
+    },
+    {
+     "start_time": 96.167,
+     "end_time": 96.533,
+     "behavior_label": "investigation"
+    },
+    {
+     "start_time": 96.533,
+     "end_time": 100.0,
+     "behavior_label": "other"
+    }
+   ],
+   "predictions": [
+    {
+     "start_time": 0.0,
+     "end_time": 0.77,
+     "behavior_label": "other",
+     "confidence": 0.69
+    },
+    {
+     "start_time": 0.77,
+     "end_time": 6.37,
+     "behavior_label": "attack",
+     "confidence": 0.8
+    },
+    {
+     "start_time": 6.37,
+     "end_time": 8.27,
+     "behavior_label": "other",
+     "confidence": 0.8
+    },
+    {
+     "start_time": 8.27,
+     "end_time": 8.67,
+     "behavior_label": "investigation",
+     "confidence": 0.47
+    },
+    {
+     "start_time": 8.67,
+     "end_time": 11.73,
+     "behavior_label": "attack",
+     "confidence": 0.85
+    },
+    {
+     "start_time": 11.73,
+     "end_time": 13.77,
+     "behavior_label": "other",
+     "confidence": 0.83
+    },
+    {
+     "start_time": 13.77,
+     "end_time": 14.83,
+     "behavior_label": "investigation",
+     "confidence": 0.68
+    },
+    {
+     "start_time": 14.83,
+     "end_time": 21.03,
+     "behavior_label": "other",
+     "confidence": 0.91
+    },
+    {
+     "start_time": 21.03,
+     "end_time": 27.6,
+     "behavior_label": "attack",
+     "confidence": 0.9
+    },
+    {
+     "start_time": 27.6,
+     "end_time": 28.63,
+     "behavior_label": "other",
+     "confidence": 0.66
+    },
+    {
+     "start_time": 28.63,
+     "end_time": 30.03,
+     "behavior_label": "investigation",
+     "confidence": 0.71
+    },
+    {
+     "start_time": 30.03,
+     "end_time": 32.23,
+     "behavior_label": "other",
+     "confidence": 0.85
+    },
+    {
+     "start_time": 32.23,
+     "end_time": 32.8,
+     "behavior_label": "investigation",
+     "confidence": 0.58
+    },
+    {
+     "start_time": 32.8,
+     "end_time": 36.73,
+     "behavior_label": "other",
+     "confidence": 0.89
+    },
+    {
+     "start_time": 36.73,
+     "end_time": 37.63,
+     "behavior_label": "investigation",
+     "confidence": 0.64
+    },
+    {
+     "start_time": 37.63,
+     "end_time": 44.03,
+     "behavior_label": "attack",
+     "confidence": 0.94
+    },
+    {
+     "start_time": 44.03,
+     "end_time": 49.23,
+     "behavior_label": "other",
+     "confidence": 0.93
+    },
+    {
+     "start_time": 49.23,
+     "end_time": 51.6,
+     "behavior_label": "attack",
+     "confidence": 0.83
+    },
+    {
+     "start_time": 51.6,
+     "end_time": 55.2,
+     "behavior_label": "other",
+     "confidence": 0.85
+    },
+    {
+     "start_time": 55.2,
+     "end_time": 57.9,
+     "behavior_label": "attack",
+     "confidence": 0.78
+    },
+    {
+     "start_time": 57.9,
+     "end_time": 58.73,
+     "behavior_label": "investigation",
+     "confidence": 0.52
+    },
+    {
+     "start_time": 58.73,
+     "end_time": 60.03,
+     "behavior_label": "other",
+     "confidence": 0.75
+    },
+    {
+     "start_time": 60.03,
+     "end_time": 61.0,
+     "behavior_label": "investigation",
+     "confidence": 0.71
+    },
+    {
+     "start_time": 61.0,
+     "end_time": 62.7,
+     "behavior_label": "attack",
+     "confidence": 0.82
+    },
+    {
+     "start_time": 62.7,
+     "end_time": 63.87,
+     "behavior_label": "other",
+     "confidence": 0.69
+    },
+    {
+     "start_time": 63.87,
+     "end_time": 64.9,
+     "behavior_label": "investigation",
+     "confidence": 0.66
+    },
+    {
+     "start_time": 64.9,
+     "end_time": 70.13,
+     "behavior_label": "attack",
+     "confidence": 0.94
+    },
+    {
+     "start_time": 70.13,
+     "end_time": 71.47,
+     "behavior_label": "other",
+     "confidence": 0.8
+    },
+    {
+     "start_time": 71.47,
+     "end_time": 72.33,
+     "behavior_label": "investigation",
+     "confidence": 0.67
+    },
+    {
+     "start_time": 72.33,
+     "end_time": 78.0,
+     "behavior_label": "attack",
+     "confidence": 0.91
+    },
+    {
+     "start_time": 78.0,
+     "end_time": 78.03,
+     "behavior_label": "other",
+     "confidence": 0.42
+    },
+    {
+     "start_time": 78.03,
+     "end_time": 78.73,
+     "behavior_label": "attack",
+     "confidence": 0.47
+    },
+    {
+     "start_time": 78.73,
+     "end_time": 79.27,
+     "behavior_label": "other",
+     "confidence": 0.5
+    },
+    {
+     "start_time": 79.27,
+     "end_time": 80.2,
+     "behavior_label": "investigation",
+     "confidence": 0.63
+    },
+    {
+     "start_time": 80.2,
+     "end_time": 80.7,
+     "behavior_label": "attack",
+     "confidence": 0.5
+    },
+    {
+     "start_time": 80.7,
+     "end_time": 82.3,
+     "behavior_label": "other",
+     "confidence": 0.72
+    },
+    {
+     "start_time": 82.3,
+     "end_time": 82.33,
+     "behavior_label": "investigation",
+     "confidence": 0.34
+    },
+    {
+     "start_time": 82.33,
+     "end_time": 86.63,
+     "behavior_label": "attack",
+     "confidence": 0.81
+    },
+    {
+     "start_time": 86.63,
+     "end_time": 87.97,
+     "behavior_label": "investigation",
+     "confidence": 0.7
+    },
+    {
+     "start_time": 87.97,
+     "end_time": 88.97,
+     "behavior_label": "other",
+     "confidence": 0.62
+    },
+    {
+     "start_time": 88.97,
+     "end_time": 89.27,
+     "behavior_label": "investigation",
+     "confidence": 0.53
+    },
+    {
+     "start_time": 89.27,
+     "end_time": 95.4,
+     "behavior_label": "other",
+     "confidence": 0.93
+    },
+    {
+     "start_time": 95.4,
+     "end_time": 96.4,
+     "behavior_label": "investigation",
+     "confidence": 0.72
+    },
+    {
+     "start_time": 96.4,
+     "end_time": 100.0,
+     "behavior_label": "other",
+     "confidence": 0.96
+    }
+   ],
+   "agreement": {
+    "frames": 3000,
+    "accuracy": 0.8573,
+    "per_class_f1": {
+     "attack": 0.8841,
+     "investigation": 0.558,
+     "mount": null,
+     "other": 0.9263
+    },
+    "macro_f1_present_classes": 0.7895,
+    "confusion_rows_annotated_cols_predicted": [
+     [
+      1140,
+      80,
+      0,
+      15
+     ],
+     [
+      157,
+      231,
+      0,
+      91
+     ],
+     [
+      0,
+      0,
+      0,
+      0
+     ],
+     [
+      47,
+      38,
+      0,
+      1201
+     ]
+    ],
+    "time_share_annotated": {
+     "attack": 0.4117,
+     "investigation": 0.1597,
+     "mount": 0.0,
+     "other": 0.4287
+    },
+    "time_share_predicted": {
+     "attack": 0.448,
+     "investigation": 0.1163,
+     "mount": 0.0,
+     "other": 0.4357
+    }
+   }
+  }
+ ],
+ "compare": {
+  "a": {
+   "attack": 0.0,
+   "investigation": 0.61,
+   "mount": 0.18,
+   "other": 0.22
+  },
+  "b": {
+   "attack": 0.45,
+   "investigation": 0.12,
+   "mount": 0.0,
+   "other": 0.44
+  },
+  "difference": {
+   "attack": 0.45,
+   "investigation": -0.49,
+   "mount": -0.18,
+   "other": 0.22
+  }
+ },
+ "compare_intervals": {
+  "level": 0.95,
+  "a": {
+   "attack": [
+    0.0,
+    0.0
+   ],
+   "investigation": [
+    0.359,
+    0.849
+   ],
+   "mount": [
+    0.039,
+    0.352
+   ],
+   "other": [
+    0.067,
+    0.363
+   ]
+  },
+  "b": {
+   "attack": [
+    0.327,
+    0.573
+   ],
+   "investigation": [
+    0.07,
+    0.168
+   ],
+   "mount": [
+    0.0,
+    0.0
+   ],
+   "other": [
+    0.308,
+    0.551
+   ]
+  },
+  "difference": {
+   "attack": [
+    0.327,
+    0.573
+   ],
+   "investigation": [
+    -0.75,
+    -0.237
+   ],
+   "mount": [
+    -0.352,
+    -0.039
+   ],
+   "other": [
+    0.032,
+    0.409
+   ]
+  }
+ }
+}

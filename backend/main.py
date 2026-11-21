@@ -204,8 +204,8 @@ def _compare_job(job_id: str, a: Recording, b: Recording) -> dict:
 
 @api.post("/compare", response_model=JobStatus)
 def compare(control: UploadFile = File(...), treated: UploadFile = File(...)):
-    a = _validate(control, "Recording A (control)")
-    b = _validate(treated, "Recording B (treated)")
+    a = _validate(control, "Recording A")
+    b = _validate(treated, "Recording B")
     job_id = _new_job()
     jobs[job_id]["warnings"] = [f"Recording A: {w}" for w in a.warnings] + [f"Recording B: {w}" for w in b.warnings]
     jobs[job_id]["durations"] = {"control": round(a.duration, 2), "treated": round(b.duration, 2)}
