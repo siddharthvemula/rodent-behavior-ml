@@ -1,5 +1,6 @@
 import type { RecordingDurations } from '../api/types'
 import { formatDuration } from './summary'
+import { DEFAULT_NAMES, type RecordingNames } from './recordingNames'
 
 /** Below this a recording is too short for stable percentages (matches the backend's warning). */
 export const SHORT_RECORDING_SECONDS = 10
@@ -18,9 +19,9 @@ export interface DurationNote {
  * still be compared, but short clips are noisy and very unequal lengths are
  * not like-for-like. We say so; we never trim or block.
  */
-export function describeDurations(d: RecordingDurations | null): DurationNote | null {
+export function describeDurations(d: RecordingDurations | null, names: RecordingNames = DEFAULT_NAMES): DurationNote | null {
   if (!d || d.control <= 0 || d.treated <= 0) return null
-  const line = `Recording A: ${formatDuration(d.control)} · Recording B: ${formatDuration(d.treated)}`
+  const line = `${names.a}: ${formatDuration(d.control)} · ${names.b}: ${formatDuration(d.treated)}`
   const shortest = Math.min(d.control, d.treated)
   const ratio = Math.max(d.control, d.treated) / shortest
 

@@ -114,3 +114,19 @@ describe('TimelineView', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(/over the 4 MB limit/)
   })
 })
+
+
+describe('TimelineView with a preloaded result (guided demo)', () => {
+  it('shows the segments straight away, with no upload form and no API call', () => {
+    const predict = vi.fn()
+    const segments = [
+      { start_time: 0, end_time: 6, behavior_label: 'other', confidence: 0.9 },
+      { start_time: 6, end_time: 12, behavior_label: 'attack', confidence: 0.8 },
+    ]
+    render(<TimelineView api={{ predict }} preloaded={{ segments, warnings: [] }} mode="detail" />)
+    expect(screen.queryByLabelText(/keypoints file/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /predict behaviors/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('region', { name: /predicted behavior timeline/i })).toBeInTheDocument()
+    expect(predict).not.toHaveBeenCalled()
+  })
+})

@@ -12,6 +12,36 @@ function fakeApi(compare: ApiClient['compare']): Pick<ApiClient, 'compare'> {
 const control = new File(['{}'], 'control.json', { type: 'application/json' })
 const treated = new File(['{}'], 'treated.json', { type: 'application/json' })
 
+describe('CompareView with a preloaded result (guided demo)', () => {
+  const outcome = { result: compareMock.result, warnings: [], durations: { control: 100, treated: 100 }, intervals: null }
+
+  it('shows the result straight away, with no upload form and no API call', () => {
+    const compare = vi.fn<ApiClient['compare']>()
+    render(<CompareView api={fakeApi(compare)} preloaded={outcome} mode="detail" />)
+    expect(screen.queryByLabelText(/keypoints/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /compare behaviors/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('table', { name: /behavior frequency comparison/i })).toBeInTheDocument()
+    expect(compare).not.toHaveBeenCalled()
+  })
+
+  it('names the recordings Clip A / Clip B everywhere when asked to, including the lengths line', () => {
+    const { container } = render(<CompareView preloaded={outcome} names={{ a: 'Clip A', b: 'Clip B' }} mode="detail" />)
+    const table = screen.getByRole('table', { name: /behavior frequency comparison/i })
+    expect(within(table).getByRole('columnheader', { name: 'Clip A' })).toBeInTheDocument()
+    expect(within(table).getByRole('columnheader', { name: 'Clip B' })).toBeInTheDocument()
+    expect(container.textContent).toMatch(/Clip A: 1 min 40 s · Clip B: 1 min 40 s/)
+    expect(container.textContent).toMatch(/clip B − clip A/)
+    expect(container.textContent).not.toMatch(/recording [ab]/i)
+  })
+
+  it('keeps the usual names by default', () => {
+    render(<CompareView preloaded={outcome} mode="detail" />)
+    const table = screen.getByRole('table', { name: /behavior frequency comparison/i })
+    expect(within(table).getByRole('columnheader', { name: 'Recording A' })).toBeInTheDocument()
+    expect(within(table).getByRole('columnheader', { name: 'Recording B' })).toBeInTheDocument()
+  })
+})
+
 describe('CompareView', () => {
   it('requires both recording files before running', async () => {
     render(<CompareView api={fakeApi(vi.fn())} />)

@@ -53,6 +53,18 @@ describe('no two-group wording anywhere in the UI', () => {
     expectNoTwoGroupWords(container, 'timeline results, detail view')
   })
 
+  it('holds on every step of the guided demo, including the card text and the annotation panel', async () => {
+    window.history.replaceState(null, '', '/#demo=1')
+    const { container } = render(<App mockMode />)
+    for (let step = 1; step <= 8; step++) {
+      if (step > 1) await userEvent.keyboard('{ArrowRight}')
+      await waitFor(() => expect(document.querySelector('[data-demo-card]')).not.toBeNull())   // the demo data is a lazy chunk
+      expect(screen.getByText(new RegExp(`step ${step} of 8`, 'i'))).toBeInTheDocument()
+      expectNoTwoGroupWords(container, `guided demo step ${step}`)
+    }
+    window.history.replaceState(null, '', '/')
+  })
+
   it('catches the words it is meant to catch', () => {
     for (const bad of ['a stand-in for control and treatment', 'Treated recording', 'the control group', 'controls']) {
       expect(TWO_GROUP_WORDS.test(bad) || /treatment/.test(bad), bad).toBe(true)

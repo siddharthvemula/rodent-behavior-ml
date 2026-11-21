@@ -1,4 +1,3 @@
-import raw from '../data/demo_clips.json'
 import type { BehaviorSegment, CompareIntervals, CompareResult, Interval } from '../api/types'
 
 /**
@@ -122,8 +121,6 @@ export function parseDemoClips(input: unknown): DemoClips {
   return d
 }
 
-export const demoClips: DemoClips = parseDemoClips(raw)
-
 /** The A-vs-B comparison in the shape the existing Compare components take (their internal field names are a fixed API contract). */
 export function demoCompareResult(d: DemoClips): CompareResult {
   return { control: d.compare.a, treated: d.compare.b, difference: d.compare.difference }
@@ -138,4 +135,34 @@ export function clipById(d: DemoClips, id: DemoClip['id']): DemoClip {
   const c = d.clips.find((x) => x.id === id)
   if (!c) throw new Error(`demo_clips.json: no clip ${id}`)
   return c
+}
+
+export interface Span {
+  readonly start: number
+  readonly end: number
+}
+
+/** Shorter than this is rounding between the two files' time resolutions (0.001 s vs 0.01 s), not a disagreement. */
+const MIN_SPAN_SECONDS = 0.02
+
+function labelAt(segs: readonly { start_time: number; end_time: number; behavior_label: string }[], t: number): string | null {
+  for (const s of segs) if (t >= s.start_time && t < s.end_time) return s.behavior_label
+  return null
+}
+
+/** Stretches of the clip where the model's label differs from the human annotation, merged and in time order. */
+export function disagreementSpans(clip: Pick<DemoClip, 'annotations' | 'predictions'>): Span[] {
+  const cuts = [...new Set([...clip.annotations, ...clip.predictions].flatMap((s) => [s.start_time, s.end_time]))].sort((a, b) => a - b)
+  const out: Span[] = []
+  for (let i = 0; i + 1 < cuts.length; i++) {
+    const [a, b] = [cuts[i], cuts[i + 1]]
+    if (b - a < 1e-9) continue
+    const mid = (a + b) / 2
+    const [x, y] = [labelAt(clip.annotations, mid), labelAt(clip.predictions, mid)]
+    if (x === null || y === null || x === y) continue
+    const last = out[out.length - 1]
+    if (last && Math.abs(last.end - a) < 1e-9) out[out.length - 1] = { start: last.start, end: b }
+    else out.push({ start: a, end: b })
+  }
+  return out.filter((s) => s.end - s.start >= MIN_SPAN_SECONDS)
 }
