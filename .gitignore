@@ -33,3 +33,6 @@ build/
 
 # Pharmacology demo raw data (downloaded, not committed)
 pharmacology/data/
+
+# Behavior-group comparison raw data (downloaded, not committed)
+behavior_groups/data/

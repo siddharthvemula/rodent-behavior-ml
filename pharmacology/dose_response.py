@@ -94,15 +94,18 @@ def hedges_g(treated: np.ndarray, control: np.ndarray) -> float:
     return float((treated.mean() - control.mean()) / sp * (1 - 3 / (4 * (n1 + n2) - 9)))
 
 
-def permutation_p(treated: np.ndarray, control: np.ndarray, rng: np.random.Generator, n_mc: int = 100_000) -> Dict:
+def permutation_p(treated: np.ndarray, control: np.ndarray, rng: np.random.Generator, n_mc: int = 100_000,
+                  exact_limit: int = EXACT_LIMIT) -> Dict:
     """Two-sided permutation p-value for the difference in means. Exact
-    (all relabelings) when feasible, otherwise Monte Carlo with add-one."""
+    (all relabelings) when feasible, otherwise Monte Carlo with add-one.
+    `exact_limit` lets a caller with a slightly larger design (e.g. 8 vs 14 =
+    319,770 relabelings) enumerate instead of sampling."""
     pooled = np.concatenate([treated, control])
     n, k = len(pooled), len(treated)
     obs = abs(treated.mean() - control.mean())
     total = float(np.prod([(n - i) / (i + 1) for i in range(k)]))  # C(n, k)
     tol = 1e-12 * max(1.0, np.abs(pooled).max())
-    if total <= EXACT_LIMIT:
+    if total <= exact_limit:
         combos = np.array(list(itertools.combinations(range(n), k)))
         s = pooled[combos].sum(axis=1)
         diff = np.abs(s / k - (pooled.sum() - s) / (n - k))

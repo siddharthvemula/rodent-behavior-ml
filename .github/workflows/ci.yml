@@ -44,6 +44,18 @@ jobs:
       - name: Run pharmacology tests
         run: pytest pharmacology/tests -v
 
+  behavior_groups:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install behavior_groups test dependencies
+        run: pip install -r behavior_groups/requirements.txt
+      - name: Run behavior_groups tests
+        run: pytest behavior_groups/tests -v
+
   frontend:
     runs-on: ubuntu-latest
     steps:
