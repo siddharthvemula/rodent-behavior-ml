@@ -6,6 +6,7 @@ import { TimelineSummary } from '../components/TimelineSummary'
 import { FilePicker } from '../components/FilePicker'
 import { Notices } from '../components/Notices'
 import { StatusMessage } from '../components/StatusMessage'
+import { useHeldLoading } from '../lib/useHeldLoading'
 import { useAsyncTask, type TaskState } from '../lib/useAsyncTask'
 import type { ViewMode } from '../lib/useViewMode'
 
@@ -23,6 +24,7 @@ export function TimelineView({ api = defaultApi, mode = 'detail', onShowDetail, 
   const { state: ownState, run, reset } = useAsyncTask<PredictOutcome>()
   const state: TaskState<PredictOutcome> = preloaded ? { status: 'success', data: preloaded } : ownState
   const isLoading = state.status === 'loading'
+  const loader = useHeldLoading(isLoading)
 
   function handleFileChange(next: File | null) {
     setFile(next)
@@ -55,8 +57,8 @@ export function TimelineView({ api = defaultApi, mode = 'detail', onShowDetail, 
       </form>
       )}
 
-      <StatusMessage state={state} loadingText="Running behavior classifier…" />
-      {state.status === 'success' && (
+      <StatusMessage state={state} loader={loader} loadingText="Running behavior classifier…" />
+      {state.status === 'success' && !loader.mounted && (
         <div key={mode} className="mode-enter">
           <Notices notes={state.data.warnings} />
           {mode === 'summary' ? (

@@ -5,6 +5,12 @@ import { CompareView } from './CompareView'
 import compareMock from '../mocks/compare.json'
 import type { ApiClient } from '../api/client'
 
+// These tests are about what the view renders, not how long the loader is held; the hold has its own tests.
+vi.mock('../lib/useHeldLoading', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../lib/useHeldLoading')>()
+  return { ...real, useHeldLoading: (active: boolean) => real.useHeldLoading(active, 0, 0) }
+})
+
 function fakeApi(compare: ApiClient['compare']): Pick<ApiClient, 'compare'> {
   return { compare }
 }

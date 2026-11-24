@@ -10,6 +10,7 @@ import { describeDurations } from '../lib/compareNotes'
 import { checkFilePair, isSameFile } from '../lib/fileChecks'
 import { DEFAULT_NAMES, RecordingNamesContext, type RecordingNames } from '../lib/recordingNames'
 import { useAsyncTask, type TaskState } from '../lib/useAsyncTask'
+import { useHeldLoading } from '../lib/useHeldLoading'
 import type { ViewMode } from '../lib/useViewMode'
 
 interface CompareViewProps {
@@ -34,12 +35,16 @@ function CompareNotes({ outcome, names }: { readonly outcome: CompareOutcome; re
   )
 }
 
+/** Two classifications plus intervals take ~0.3 s for real; hold the globe long enough to read as "working". */
+const COMPARE_MIN_VISIBLE_MS = 1200
+
 export function CompareView({ api = defaultApi, mode = 'detail', onShowDetail, preloaded = null, names = DEFAULT_NAMES }: CompareViewProps) {
   const [control, setControl] = useState<File | null>(null)
   const [treated, setTreated] = useState<File | null>(null)
   const { state: ownState, run, reset } = useAsyncTask<CompareOutcome>()
   const state: TaskState<CompareOutcome> = preloaded ? { status: 'success', data: preloaded } : ownState
   const isLoading = state.status === 'loading'
+  const loader = useHeldLoading(isLoading, COMPARE_MIN_VISIBLE_MS)
   const pairProblem = control && treated ? checkFilePair(control, treated) : null
   const sameFile = control && treated ? isSameFile(control, treated) : false
 
@@ -90,8 +95,8 @@ export function CompareView({ api = defaultApi, mode = 'detail', onShowDetail, p
       </form>
       )}
 
-      <StatusMessage state={state} loadingText="Classifying both recordings…" />
-      {state.status === 'success' && (
+      <StatusMessage state={state} loader={loader} loadingText="Classifying both recordings…" />
+      {state.status === 'success' && !loader.mounted && (
         <RecordingNamesContext.Provider value={names}>
         <div key={mode} className="mode-enter">
           <CompareNotes outcome={state.data} names={names} />

@@ -3,6 +3,7 @@ import { apiConfig } from './api/client'
 import { ClipAgreement } from './components/ClipAgreement'
 import { DemoGuide } from './components/DemoGuide'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { NetworkLoader } from './components/NetworkLoader'
 import { ViewToggle } from './components/ViewToggle'
 import { DEMO_FLOW } from './lib/demoFlow'
 import { useDemo } from './lib/useDemo'
@@ -21,6 +22,10 @@ import './demo.css'
 const PharmacologyView = lazy(() => import('./views/PharmacologyView').then((m) => ({ default: m.PharmacologyView })))
 
 const GroupComparisonView = lazy(() => import('./views/GroupComparisonView').then((m) => ({ default: m.GroupComparisonView })))
+
+// While a lazy tab's code loads. It's near-instant, so the globe fades in after a short delay (CSS) and a quick
+// load never flashes it; there's nothing to be "ready" for, so it has no resting state.
+const tabLoader = (label: string) => <NetworkLoader className="net-loader--deferred" label={label} />
 
 const TABS = [
   { id: 'timeline', label: 'Timeline' },
@@ -151,7 +156,7 @@ function App({ mockMode = apiConfig.useMock }: AppProps) {
           hidden={activeTab !== 'pharmacology'}
         >
           <ErrorBoundary area="the pharmacology demo">
-            <Suspense fallback={<p className="muted">Loading…</p>}>
+            <Suspense fallback={tabLoader('Loading the pharmacology demo…')}>
               <PharmacologyView />
             </Suspense>
           </ErrorBoundary>
@@ -159,7 +164,7 @@ function App({ mockMode = apiConfig.useMock }: AppProps) {
         <section id="panel-groups" role="tabpanel" aria-labelledby="tab-groups" hidden={activeTab !== 'groups'}>
           {(groupsOpened || activeTab === 'groups') && (
             <ErrorBoundary area="the behavior-group comparison">
-              <Suspense fallback={<p className="muted">Loading…</p>}>
+              <Suspense fallback={tabLoader('Loading the behavior-group comparison…')}>
                 <GroupComparisonView />
               </Suspense>
             </ErrorBoundary>
