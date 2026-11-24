@@ -104,7 +104,7 @@ describe('Pharmacology tab', () => {
   it('is a separate tab that does not disturb the existing ones', async () => {
     render(<App mockMode />)
     const tabs = screen.getAllByRole('tab').map((t) => t.textContent)
-    expect(tabs).toEqual(['Timeline', 'Compare recordings', 'Pharmacology demo'])
+    expect(tabs).toEqual(['Timeline', 'Compare recordings', 'Pharmacology demo', 'Behavior groups'])
     await userEvent.click(screen.getByRole('tab', { name: 'Pharmacology demo' }))
     expect(screen.getByRole('heading', { name: /saline vs\. yohimbine/i })).toBeVisible()
     expect(screen.queryByText(/canned sample data/i)).not.toBeInTheDocument()

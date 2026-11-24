@@ -257,3 +257,52 @@
   display: inline-block;
   flex: none;
 }
+
+/* ---- behavior-group comparison (categorical groups, not an ordered dose ramp) ---- */
+.grp {
+  grid-template-columns: minmax(0, 1fr); /* let wide tables scroll inside their wrapper instead of widening the page */
+  --grp-0: #6b7686;
+  --grp-1: #b7791f;
+  --grp-2: #6250d6;
+  --grp-3: #c2307a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .grp {
+    --grp-0: #a3adbb;
+    --grp-1: #f0b429;
+    --grp-2: #9d92f0;
+    --grp-3: #ee74ae;
+  }
+}
+
+.grp-caveats {
+  border-left: 4px solid var(--warn-text);
+}
+
+.grp-headline {
+  margin: 14px 0 4px;
+  font-size: 1.02rem;
+}
+
+.grp-behavior h3 {
+  margin: 20px 0 8px;
+  font-size: 1rem;
+}
+
+.grp-behavior__gloss {
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+
+.grp-forest .pharm-chart__plot {
+  min-width: 0;
+}
+
+.grp-table-scroll {
+  overflow-x: auto;
+}
+
+.grp-table-scroll .pharm-table {
+  min-width: 560px;
+}
