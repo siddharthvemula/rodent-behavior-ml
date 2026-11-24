@@ -2,6 +2,9 @@ import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
 import { afterEach } from 'vitest'
 
+// jsdom has no canvas; NetworkLoader bails out cleanly without a context, so just silence the "not implemented" log.
+HTMLCanvasElement.prototype.getContext = (() => null) as unknown as HTMLCanvasElement['getContext']
+
 // Vitest runs without globals, so Testing Library can't auto-register cleanup.
 afterEach(() => {
   cleanup()
