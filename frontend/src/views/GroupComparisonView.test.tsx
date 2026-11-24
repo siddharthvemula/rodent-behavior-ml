@@ -135,8 +135,11 @@ describe('Behavior groups tab', () => {
       'Pharmacology demo',
       'Behavior groups',
     ])
+    expect(screen.queryByTestId('caveats')).not.toBeInTheDocument() // not mounted until first opened
     await userEvent.click(screen.getByRole('tab', { name: 'Behavior groups' }))
     expect(await screen.findByRole('heading', { name: /read this first/i })).toBeVisible()
     expect(screen.queryByText(/canned sample data/i)).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('tab', { name: 'Timeline' }))
+    expect(screen.getByTestId('caveats')).toBeInTheDocument() // stays mounted after the first visit
   })
 })

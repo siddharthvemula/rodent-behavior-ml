@@ -38,6 +38,8 @@ interface AppProps {
 
 function App({ mockMode = apiConfig.useMock }: AppProps) {
   const [tab, setTab] = useState<TabId>('timeline')
+  // The behavior-groups view is large (hundreds of chart dots), so it is mounted on first visit and then kept.
+  const [groupsOpened, setGroupsOpened] = useState(false)
   const [userViewMode, setViewMode] = useViewMode('summary')
 
   // Guided demo: while a step is showing, it drives the tab and view mode and the views show precomputed results.
@@ -121,6 +123,7 @@ function App({ mockMode = apiConfig.useMock }: AppProps) {
             onClick={() => {
               demo.exit()
               setTab(t.id)
+              if (t.id === 'groups') setGroupsOpened(true)
             }}
           >
             {t.label}
@@ -154,11 +157,13 @@ function App({ mockMode = apiConfig.useMock }: AppProps) {
           </ErrorBoundary>
         </section>
         <section id="panel-groups" role="tabpanel" aria-labelledby="tab-groups" hidden={activeTab !== 'groups'}>
-          <ErrorBoundary area="the behavior-group comparison">
-            <Suspense fallback={<p className="muted">Loading…</p>}>
-              <GroupComparisonView />
-            </Suspense>
-          </ErrorBoundary>
+          {(groupsOpened || activeTab === 'groups') && (
+            <ErrorBoundary area="the behavior-group comparison">
+              <Suspense fallback={<p className="muted">Loading…</p>}>
+                <GroupComparisonView />
+              </Suspense>
+            </ErrorBoundary>
+          )}
         </section>
       </main>
 
