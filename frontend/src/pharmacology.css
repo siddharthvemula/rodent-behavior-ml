@@ -276,16 +276,7 @@
   }
 }
 
-.grp-caveats {
-  border-left: 4px solid var(--warn-text);
-}
-
-.grp-headline {
-  margin: 14px 0 4px;
-  font-size: 1.02rem;
-}
-
-.grp-behavior h3 {
+.grp-behavior h4 {
   margin: 20px 0 8px;
   font-size: 1rem;
 }
@@ -305,4 +296,61 @@
 
 .grp-table-scroll .pharm-table {
   min-width: 560px;
+}
+
+/* ---------- hierarchy: one headline per section, its charts quieter below, caveats collapsed ---------- */
+.finding {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr); /* same reason as .grp: wide tables scroll, the page does not */
+  gap: 10px;
+}
+
+.finding + .finding {
+  margin-top: 20px;
+}
+
+.card.support {
+  box-shadow: none;
+  background: color-mix(in srgb, var(--surface) 65%, transparent);
+}
+
+.support > h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.support > p {
+  margin: 4px 0 0;
+}
+
+.support .pharm-findings {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.card.method {
+  box-shadow: none;
+  padding-block: 12px;
+}
+
+.method > summary {
+  cursor: pointer;
+}
+
+.method__title {
+  font-weight: 600;
+}
+
+.method__hint {
+  margin-left: 10px;
+  font-size: 0.85rem;
+}
+
+.method__body {
+  font-size: 0.9rem;
+}
+
+.method__body h3 {
+  margin: 18px 0 4px;
+  font-size: 0.95rem;
 }

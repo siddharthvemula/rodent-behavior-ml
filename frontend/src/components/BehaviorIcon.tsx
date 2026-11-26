@@ -19,6 +19,14 @@ const ICONS: Readonly<Record<string, ReactNode>> = {
       <polyline points="6.5 18.5 12 13 17.5 18.5" />
     </>
   ),
+  // bars: a section's headline result (not a behavior)
+  finding: (
+    <>
+      <line x1="6" y1="20" x2="6" y2="13" />
+      <line x1="12" y1="20" x2="12" y2="5" />
+      <line x1="18" y1="20" x2="18" y2="10" />
+    </>
+  ),
   // dots: everything else
   other: (
     <>

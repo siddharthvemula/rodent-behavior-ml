@@ -92,6 +92,27 @@ describe('PharmacologyView', () => {
     expect(screen.getAllByText(/CC BY 4\.0/).length).toBeGreaterThan(0)
   })
 
+  it('leads each section with one headline computed from the data', () => {
+    render(<PharmacologyView />)
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.querySelector('.sr-only')?.textContent)).toEqual([
+      'At 6 mg/kg, mice covered 195 arena widths vs 364 on saline',
+      '8 of 8 mice on 6 mg/kg traveled less than every saline mouse',
+      'The 6 mg/kg group averaged less distance than saline in 6 of 6 time bins',
+    ])
+    expect(screen.getByText('46 percent lower than saline')).toBeInTheDocument()
+    expect(screen.getByText(/not a tested result/i)).toBeVisible()
+  })
+
+  it('keeps the caveats collapsed by default, one click away', async () => {
+    render(<PharmacologyView />)
+    const method = screen.getByTestId('methodology') as HTMLDetailsElement
+    expect(method.open).toBe(false)
+    const caveat = within(method).getByText(/small groups\./i)
+    expect(caveat).not.toBeVisible()
+    await userEvent.click(within(method).getByText('Methodology and caveats'))
+    expect(caveat).toBeVisible()
+  })
+
   it('has a per-mouse table alternative', async () => {
     render(<PharmacologyView />)
     await userEvent.click(screen.getByText(/per-mouse table/i))
