@@ -3,6 +3,8 @@ import { DoseStripChart } from '../components/DoseStripChart'
 import { EffectForest, EffectTable } from '../components/EffectForest'
 import { Hero, HeroStat } from '../components/Hero'
 import { Methodology } from '../components/Methodology'
+import type { ViewMode } from '../lib/useViewMode'
+import { PharmacologySummary } from './PharmacologySummary'
 import { TimeCourseChart, TimeCourseTable } from '../components/TimeCourseChart'
 import {
   DOSES,
@@ -29,6 +31,9 @@ import {
 import { leadDoseEffect, binsBelowSaline, miceBelowAllSaline } from '../lib/pharmFindings'
 
 interface Props {
+  /** Summary shows one finding and one chart; Detail (the default here) shows everything. */
+  readonly mode?: ViewMode
+  readonly onShowDetail?: () => void
   readonly data?: OpenFieldData
   readonly stats?: DoseResponse
   readonly mice?: readonly RichMouse[]
@@ -37,7 +42,9 @@ interface Props {
 const mde = (d: number | null) => (d === null ? 'larger than any effect tested' : `d ≈ ${d.toFixed(1)}`)
 
 /** Open-field pharmacology demo: yohimbine dose groups, real data, no classifier involved. */
-export function PharmacologyView({ data = openField, stats = doseResponse, mice = richMice }: Props) {
+export function PharmacologyView({ data = openField, stats = doseResponse, mice = richMice, mode = 'detail', onShowDetail }: Props) {
+  if (mode === 'summary') return <PharmacologySummary data={data} stats={stats} onShowDetail={onShowDetail} />
+
   const groups = groupByDose(mice)
   const axis = effectAxis(stats)
   const perGroup = groups[0]?.mice.length ?? 0

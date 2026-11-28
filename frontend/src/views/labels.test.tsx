@@ -29,7 +29,7 @@ function expectNoTwoGroupWords(root: HTMLElement, where: string) {
 describe('no two-group wording anywhere in the UI', () => {
   it('holds in every tab, both result views, and after real results render', async () => {
     const { container } = render(<App mockMode />)
-    await screen.findByRole('heading', { name: /how each dose compares with saline/i, hidden: true })   // lazy Pharmacology tab
+    await screen.findByRole('heading', { name: /each dose compared with saline/i, hidden: true })   // lazy Pharmacology tab
     expectNoTwoGroupWords(container, 'initial load (all three tabs are mounted)')
 
     const file = new File(['{}'], 'a.json', { type: 'application/json' })
@@ -47,6 +47,7 @@ describe('no two-group wording anywhere in the UI', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Detail' }))
     await screen.findByRole('table', { name: /behavior frequency comparison/i })
+    await screen.findByRole('heading', { name: /how each dose compares with saline/i, hidden: true })
     expectNoTwoGroupWords(container, 'compare results, detail view')
 
     await userEvent.click(screen.getByRole('tab', { name: /timeline/i }))

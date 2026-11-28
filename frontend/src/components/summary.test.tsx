@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { BehaviorSegment, CompareResult } from '../api/types'
 import { buildColorMap } from '../lib/behaviors'
 import { BehaviorTimeline } from './BehaviorTimeline'
+import { CompareDonuts } from './CompareDonuts'
 import { CompareSummary } from './CompareSummary'
 import { TimelineSummary } from './TimelineSummary'
 import { ViewToggle } from './ViewToggle'
@@ -24,7 +25,7 @@ describe('CompareSummary', () => {
   it('shows a headline generated from the result, as the accessible heading', () => {
     render(<CompareSummary result={compare} />)
     expect(screen.getByRole('heading', { level: 2, name: 'Investigating fell sharply from 61% to 12% of the time' })).toBeInTheDocument()
-    expect(screen.getByText(/also: attacking jumped from 0% to 44%/i)).toBeInTheDocument()
+    expect(screen.queryByText(/also: attacking/i)).not.toBeInTheDocument() // one sentence only
   })
 
   it('headline follows the data', () => {
@@ -57,7 +58,18 @@ describe('CompareSummary', () => {
 
   it('is honest about what the numbers are', () => {
     render(<CompareSummary result={compare} />)
-    expect(screen.getByText(/not a statistical test/i)).toBeInTheDocument()
+    expect(screen.getByText(/describes these two recordings only/i)).toBeInTheDocument()
+  })
+
+  it('says in plain words when the headline change could be ordinary variation, and only then', () => {
+    const intervals = (attack: [number, number], investigation: [number, number]) => ({
+      level: 0.95, control: {}, treated: {}, difference: { attack, investigation },
+    })
+    const { rerender, container } = render(<CompareSummary result={compare} intervals={intervals([0.2, 0.6], [-0.7, 0.1])} />)
+    expect(screen.getByText(/could be ordinary variation/i)).toBeInTheDocument()
+    rerender(<CompareSummary result={compare} intervals={intervals([0.2, 0.6], [-0.7, -0.3])} />)
+    expect(screen.queryByText(/could be ordinary variation/i)).not.toBeInTheDocument()
+    expect(container.querySelector('.change__whisker, .change__verdict, .donut')).toBeNull()
   })
 
   it('offers a way to the exact values only when a handler is given', async () => {
@@ -197,33 +209,22 @@ describe('standout, donuts and linked hover', () => {
   })
 
   it('draws a donut per recording with every value in its accessible name', () => {
-    render(<CompareSummary result={compare} />)
+    render(<CompareDonuts result={compare} />)
     expect(screen.getByRole('img', { name: 'Recording A: Investigation 61%, Mounting 18%, Other 21%' })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Recording B: Attack 44%, Investigation 12%, Other 43%' })).toBeInTheDocument()
   })
 
   it('centers each donut on the standout behavior until something is hovered', async () => {
-    const { container } = render(<CompareSummary result={compare} />)
+    const { container } = render(<CompareDonuts result={compare} />)
     const centers = () => [...container.querySelectorAll('.donut__center')].map((c) => c.textContent)
     expect(centers()).toEqual(['61%Investigation', '12%Investigation'])
 
-    const attackRow = screen.getAllByRole('group').find((g) => g.classList.contains('change__row') && g.getAttribute('aria-label')?.startsWith('Attack'))!
-    await userEvent.hover(attackRow)
-    expect(centers()).toEqual(['0%Attack', '44%Attack']) // both donuts follow the hovered row
-    expect(container.querySelectorAll('div.change__row.is-dim')).toHaveLength(3)
-    expect(attackRow).toHaveClass('is-active')
-
-    await userEvent.unhover(attackRow)
-    expect(centers()).toEqual(['61%Investigation', '12%Investigation'])
-    expect(container.querySelectorAll('.is-dim')).toHaveLength(0)
-  })
-
-  it('hovering a donut segment highlights the matching row', async () => {
-    const { container } = render(<CompareSummary result={compare} />)
     const treatedAttackSeg = container.querySelectorAll('.donut')[1].querySelector<SVGCircleElement>('.donut__seg')!
     await userEvent.hover(treatedAttackSeg)
-    const active = container.querySelector('div.change__row.is-active')
-    expect(active?.getAttribute('aria-label')).toMatch(/^Attack/)
+    expect(centers()).toEqual(['0%Attack', '44%Attack']) // both donuts follow the hovered segment
+
+    await userEvent.unhover(treatedAttackSeg)
+    expect(centers()).toEqual(['61%Investigation', '12%Investigation'])
   })
 
   it('single-recording Summary has a donut too, centered on the most common behavior', () => {

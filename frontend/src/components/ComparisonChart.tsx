@@ -27,7 +27,7 @@ export function ComparisonChart({ result, intervals = null }: ComparisonChartPro
   const focus = rows.find((r) => r.label !== 'other' && r.difference !== 0)?.label ?? null
 
   return (
-    <section className="result" aria-label="Comparison of two recordings">
+    <section className="result" data-demo="compare-result" aria-label="Comparison of two recordings">
       <ChangeChart result={result} intervals={intervals} />
 
       <table className="data-table compare-table" aria-label="Behavior frequency comparison">

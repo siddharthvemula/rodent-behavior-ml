@@ -157,7 +157,7 @@ function App({ mockMode = apiConfig.useMock }: AppProps) {
         >
           <ErrorBoundary area="the pharmacology demo">
             <Suspense fallback={tabLoader('Loading the pharmacology demo…')}>
-              <PharmacologyView />
+              <PharmacologyView mode={viewMode} onShowDetail={leaveDemoToDetail} />
             </Suspense>
           </ErrorBoundary>
         </section>
@@ -165,7 +165,7 @@ function App({ mockMode = apiConfig.useMock }: AppProps) {
           {(groupsOpened || activeTab === 'groups') && (
             <ErrorBoundary area="the behavior-group comparison">
               <Suspense fallback={tabLoader('Loading the behavior-group comparison…')}>
-                <GroupComparisonView />
+                <GroupComparisonView mode={viewMode} onShowDetail={leaveDemoToDetail} />
               </Suspense>
             </ErrorBoundary>
           )}
