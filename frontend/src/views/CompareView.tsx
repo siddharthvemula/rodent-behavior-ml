@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { api as defaultApi, type ApiClient } from '../api/client'
 import type { CompareOutcome } from '../api/types'
+import { CompareDonuts } from '../components/CompareDonuts'
 import { CompareSummary } from '../components/CompareSummary'
 import { ComparisonChart } from '../components/ComparisonChart'
 import { FilePicker } from '../components/FilePicker'
@@ -103,9 +104,12 @@ export function CompareView({ api = defaultApi, mode = 'detail', onShowDetail, p
           {mode === 'summary' ? (
             <CompareSummary result={state.data.result} intervals={state.data.intervals} onShowDetail={onShowDetail} />
           ) : (
-            <div className="card">
-              <ComparisonChart result={state.data.result} intervals={state.data.intervals} />
-            </div>
+            <>
+              <div className="card">
+                <ComparisonChart result={state.data.result} intervals={state.data.intervals} />
+              </div>
+              <CompareDonuts result={state.data.result} />
+            </>
           )}
         </div>
         </RecordingNamesContext.Provider>

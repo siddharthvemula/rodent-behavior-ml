@@ -21,6 +21,8 @@ interface Props {
   readonly spec: PrimarySpec
   readonly rows: readonly ForestRow[]
   readonly axis: { readonly lim: number; readonly ticks: readonly number[] }
+  /** Summary view: same marks, but everyday words in place of p-values, effect-size numbers and intervals. */
+  readonly plain?: boolean
 }
 
 const pText = (p: number) => (formatP(p).startsWith('<') ? `p ${formatP(p)}` : `p = ${formatP(p)}`)
@@ -33,8 +35,17 @@ function describe(spec: PrimarySpec, r: ForestRow): string {
   )
 }
 
+const verdict = (r: ForestRow) => (r.significant ? 'clear' : 'not clear')
+
+function describePlain(spec: PrimarySpec, r: ForestRow): string {
+  return (
+    `${doseLabel(r.dose)} vs saline: ${formatSigned(r.diff, 1)} ${spec.unit} on average, ` +
+    (r.significant ? 'a clear difference' : 'not a clear difference')
+  )
+}
+
 /** One metric: effect size (Hedges' g) of each dose vs saline with its 95% interval, on an axis shared by every metric. */
-export function EffectForest({ spec, rows, axis }: Props) {
+export function EffectForest({ spec, rows, axis, plain = false }: Props) {
   const [active, setActive] = useState<number | null>(null)
   const H = M.top + rows.length * ROW_H + M.bottom
   const x = (v: number) => M.left + ((v + axis.lim) / (2 * axis.lim)) * PLOT_W
@@ -42,15 +53,15 @@ export function EffectForest({ spec, rows, axis }: Props) {
   const swatch = (dose: number) => `var(--dose-${DOSES.indexOf(dose as (typeof DOSES)[number])})`
 
   return (
-    <figure className="pharm-chart">
+    <figure className={`pharm-chart${plain ? ' pharm-chart--wide' : ''}`}>
       <figcaption className="pharm-chart__title">{spec.title}</figcaption>
       <div className="pharm-chart__plot">
-        <svg viewBox={`0 0 ${W} ${H}`} role="group" aria-label={`Effect size of each dose versus saline: ${spec.title}`}>
+        <svg viewBox={`0 0 ${W} ${H}`} role="group" aria-label={`${plain ? 'Difference' : 'Effect size'} of each dose versus saline: ${spec.title}`}>
           {axis.ticks.map((t) => (
             <g key={t}>
               <line className={t === 0 ? 'pharm-zero' : 'pharm-grid'} x1={x(t)} x2={x(t)} y1={M.top} y2={H - M.bottom} />
               <text className="pharm-axis" x={x(t)} y={H - M.bottom + 18} textAnchor="middle">
-                {t < 0 ? `−${-t}` : t}
+                {plain ? (t === 0 ? 'same' : '') : t < 0 ? `−${-t}` : t}
               </text>
             </g>
           ))}
@@ -61,7 +72,7 @@ export function EffectForest({ spec, rows, axis }: Props) {
             {'higher than saline →'}
           </text>
           {rows.map((r, i) => {
-            const label = describe(spec, r)
+            const label = plain ? describePlain(spec, r) : describe(spec, r)
             const colour = swatch(r.dose)
             const show = () => setActive(i)
             return (
@@ -79,7 +90,7 @@ export function EffectForest({ spec, rows, axis }: Props) {
                   style={r.significant ? { fill: colour } : { fill: 'var(--surface)', stroke: colour, strokeWidth: 2 }}
                 />
                 <text className="pharm-axis" x={W - M.right + 10} y={cy(i)} dominantBaseline="middle" fontWeight={r.significant ? 600 : 400}>
-                  {pText(r.pHolm)}
+                  {plain ? verdict(r) : pText(r.pHolm)}
                 </text>
                 <rect
                   className="pharm-hit"
@@ -106,14 +117,20 @@ export function EffectForest({ spec, rows, axis }: Props) {
               transform: active === 0 ? 'translate(-50%, 16px)' : undefined,
             }}
           >
-            <strong>
-              g {formatSigned(rows[active].g)}
-              {rows[active].significant ? '' : ' (not significant)'}
-            </strong>{' '}
-            <span className="pharm-tip__muted">
-              {doseLabel(rows[active].dose)} vs saline · 95% CI {formatSigned(rows[active].ci[0], 1)} to {formatSigned(rows[active].ci[1], 1)} ·{' '}
-              {formatSigned(rows[active].diff, 1)} {spec.unit} · Holm {pText(rows[active].pHolm)}
-            </span>
+            {plain ? (
+              <span>{describePlain(spec, rows[active])}</span>
+            ) : (
+              <>
+                <strong>
+                  g {formatSigned(rows[active].g)}
+                  {rows[active].significant ? '' : ' (not significant)'}
+                </strong>{' '}
+                <span className="pharm-tip__muted">
+                  {doseLabel(rows[active].dose)} vs saline · 95% CI {formatSigned(rows[active].ci[0], 1)} to {formatSigned(rows[active].ci[1], 1)} ·{' '}
+                  {formatSigned(rows[active].diff, 1)} {spec.unit} · Holm {pText(rows[active].pHolm)}
+                </span>
+              </>
+            )}
           </div>
         )}
       </div>

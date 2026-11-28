@@ -27,8 +27,8 @@ export const DEMO_FLOW: readonly DemoFlowStep[] = [
   { id: 'timeline', kind: 'screen', tab: 'timeline', view: 'summary', clip: 'clip_a', target: 'timeline-summary', showAgreement: false },
   { id: 'confidence', kind: 'screen', tab: 'timeline', view: 'detail', clip: 'clip_a', target: 'confidence-lane', showAgreement: false },
   { id: 'agreement', kind: 'screen', tab: 'timeline', view: 'summary', clip: 'clip_b', target: 'clip-agreement', showAgreement: true },
-  { id: 'compare', kind: 'screen', tab: 'compare', view: 'summary', clip: 'clip_a', target: 'compare-result', showAgreement: false },
+  { id: 'compare', kind: 'screen', tab: 'compare', view: 'detail', clip: 'clip_a', target: 'compare-result', showAgreement: false },
   { id: 'trust', kind: 'screen', tab: 'timeline', view: 'detail', clip: 'clip_a', target: 'model-trust', showAgreement: false },
-  { id: 'pharmacology', kind: 'screen', tab: 'pharmacology', view: 'summary', clip: 'clip_a', target: 'pharm-effects', showAgreement: false },
+  { id: 'pharmacology', kind: 'screen', tab: 'pharmacology', view: 'detail', clip: 'clip_a', target: 'pharm-effects', showAgreement: false },
   { id: 'close', kind: 'interlude', tab: 'timeline', view: 'summary', clip: 'clip_a', target: null, showAgreement: false },
 ]

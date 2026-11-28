@@ -354,3 +354,47 @@
   margin: 18px 0 4px;
   font-size: 0.95rem;
 }
+
+/* ---------- Summary view of the pharmacology and group tabs: headline, one chart ---------- */
+.pharm--summary {
+  gap: 16px;
+}
+
+.summary-chart > h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.summary-chart > p {
+  margin: 4px 0 14px;
+}
+
+.summary-chart > .summary-chart__caveat {
+  margin: 8px 0 0;
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.summary-chart .pharm-chart {
+  max-width: 640px;
+  margin-inline: auto;
+}
+
+.pharm--summary > .link-button {
+  justify-self: start;
+}
+
+.donut-card {
+  margin-top: 16px;
+}
+
+.donut-card h3 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
+
+.donuts__pair--row {
+  grid-template-columns: repeat(2, auto);
+  gap: 32px;
+}

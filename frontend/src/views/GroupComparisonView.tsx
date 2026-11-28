@@ -3,6 +3,8 @@ import { GroupEffectTable, GroupForest } from '../components/GroupForest'
 import { GroupStripChart } from '../components/GroupStripChart'
 import { Hero, HeroStat } from '../components/Hero'
 import { Methodology } from '../components/Methodology'
+import type { ViewMode } from '../lib/useViewMode'
+import { GroupSummary } from './GroupSummary'
 import {
   BEHAVIOR_SPECS,
   CONTRASTS,
@@ -22,6 +24,9 @@ import {
 } from '../lib/groupComparison'
 
 interface Props {
+  /** Summary shows one finding and one chart; Detail (the default here) shows everything. */
+  readonly mode?: ViewMode
+  readonly onShowDetail?: () => void
   readonly stats?: GroupComparison
 }
 
@@ -29,7 +34,9 @@ const mde = (d: number | null) => (d === null ? 'larger than any effect tested' 
 const pct = (x: number) => `${Math.round(x * 100)}%`
 
 /** Behavior across manipulation groups: the lab's own human annotations, descriptive group comparison, no classifier. */
-export function GroupComparisonView({ stats = groupComparison }: Props) {
+export function GroupComparisonView({ stats = groupComparison, mode = 'detail', onShowDetail }: Props) {
+  if (mode === 'summary') return <GroupSummary stats={stats} onShowDetail={onShowDetail} />
+
   const axis = effectAxis(stats)
   const out = familyOutcome(stats)
   const n = stats.design.groups

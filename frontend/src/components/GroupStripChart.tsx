@@ -12,6 +12,8 @@ interface Props {
   readonly metric: MetricStats
   readonly title: string
   readonly unit: string
+  /** Word for the per-group count ("14 mice"); the default is the statistical "n = 14". */
+  readonly countNoun?: string
 }
 
 interface Hover {
@@ -23,7 +25,7 @@ interface Hover {
 const fmt = (v: number, max: number) => (max >= 10 ? Math.round(v).toLocaleString('en-US') : v.toFixed(max >= 1 ? 1 : 2))
 
 /** One metric: every recording as a dot per group, with the group mean and median marked. */
-export function GroupStripChart({ metric, title, unit }: Props) {
+export function GroupStripChart({ metric, title, unit, countNoun }: Props) {
   const [hover, setHover] = useState<Hover | null>(null)
   const all = GROUPS.flatMap((g) => metric.groups[g].values)
   const max = niceMax(Math.max(...all, 0.01) * 1.05)
@@ -61,7 +63,7 @@ export function GroupStripChart({ metric, title, unit }: Props) {
                   {GROUP_LABEL[g] === 'Social isolation' ? 'Isolation' : GROUP_LABEL[g]}
                 </text>
                 <text className="pharm-axis pharm-axis--muted" x={cx(i)} y={H - 8} textAnchor="middle">
-                  n = {vals.length}
+                  {countNoun ? `${vals.length} ${countNoun}` : `n = ${vals.length}`}
                 </text>
                 <line className="pharm-median" x1={cx(i) - half} x2={cx(i) + half} y1={y(median(vals))} y2={y(median(vals))} />
                 <line className="pharm-mean" x1={cx(i) - half} x2={cx(i) + half} y1={y(mean(vals))} y2={y(mean(vals))} />

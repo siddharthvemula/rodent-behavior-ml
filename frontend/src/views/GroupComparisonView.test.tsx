@@ -146,8 +146,10 @@ describe('Behavior groups tab', () => {
       'Pharmacology demo',
       'Behavior groups',
     ])
-    expect(screen.queryByTestId('caveats')).not.toBeInTheDocument() // not mounted until first opened
+    expect(screen.queryByTestId('recording-dot')).not.toBeInTheDocument() // not mounted until first opened
     await userEvent.click(screen.getByRole('tab', { name: 'Behavior groups' }))
+    expect(await screen.findByRole('heading', { name: /attacking, the main behavior/i })).toBeVisible() // Summary is the default
+    await userEvent.click(screen.getByRole('button', { name: 'Detail' }))
     expect(await screen.findByRole('heading', { name: /how each group compares with naive/i })).toBeVisible()
     expect(screen.queryByText(/canned sample data/i)).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole('tab', { name: 'Timeline' }))

@@ -127,7 +127,9 @@ describe('Pharmacology tab', () => {
     const tabs = screen.getAllByRole('tab').map((t) => t.textContent)
     expect(tabs).toEqual(['Timeline', 'Compare recordings', 'Pharmacology demo', 'Behavior groups'])
     await userEvent.click(screen.getByRole('tab', { name: 'Pharmacology demo' }))
-    expect(screen.getByRole('heading', { name: /saline vs\. yohimbine/i })).toBeVisible()
+    expect(await screen.findByRole('heading', { name: /each dose compared with saline/i })).toBeVisible() // Summary is the default
+    await userEvent.click(screen.getByRole('button', { name: 'Detail' }))
+    expect(await screen.findByRole('heading', { name: /saline vs\. yohimbine/i })).toBeVisible()
     expect(screen.queryByText(/canned sample data/i)).not.toBeInTheDocument()
   })
 })
